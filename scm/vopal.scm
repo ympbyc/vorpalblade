@@ -1,4 +1,4 @@
-;;;;        You found a vopal blade!
+;;;;        You found a vorpal blade!
 ;;;;
 ;;;;              ############
 ;;;;              #..........#
