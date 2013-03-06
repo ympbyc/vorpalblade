@@ -1,92 +1,122 @@
+;;;;        You found a vopal blade!
+;;;;
+;;;;              ############
+;;;;              #..........#
+;;;;              #....@.....#
+;;;;              #.......>..#
+;;;;              ############
+;;;;
+;;;; ympbyc the Programmer    Chaotic human hacker
+
+
+;;===================( Helpers )==================;;
 (define-macro (.. method obj . args)
   `(js-invoke ,obj ',method ,@args))
 
 (define \> js-invocation)
 
+(define (num-pair->key x y)
+  (string-append (number->string x) "," (number->string y)))
+
+(define (defined? x) (not (js-undefined? x)))
+
 (define ROT (js-eval "ROT"))
+;;====================( End )=====================;;
 
+
+;;===================( Config )===================;;
 (define *GAME-display* (js-new "ROT.Display" (js-obj  "fontSize" 14 "width" 100 "height" 40)))
-(define *GAME-freeCells* (make-vector 0))
-(define *GAME-map* (js-obj))
-(define *GAME-player* (js-obj))
-
 (define KEYMAP (js-eval "({ 38: 0, 33: 1, 39: 2, 34: 3, 40: 4, 35: 5, 37: 6, 36: 7})"))
+;;====================( End )=====================;;
 
-(define (digCallback x y wall)
-  (let ((key (num-pair->key x y)))
-    (if (= wall 0)
-      (begin
-        (vector-set! *GAME-freeCells* (vector-length *GAME-freeCells*) key)
-        (js-set! *GAME-map* key "."))
-      (js-set! *GAME-map* key "#"))))
+
+;;===============( Map Generation )===============;;
+;;Although some mutations are performed, CLEAN AND FUNCTIONAL as a whole.
+
+(define (digCallback freeCells gameMap)
+  (lambda (x y wall)
+    (let ((key (num-pair->key x y)))
+      (if (= wall 0)
+          (begin
+            (vector-set! freeCells (vector-length freeCells) key)
+            (hashtable-set! gameMap key "."))
+          (hashtable-set! gameMap key "#")))))
 
 (define (map-gen)
   (\> ROT
       'RNG
       '(setSeed 123))
   (let ((aMap (js-new "ROT.Map.Digger" 100 40))
-        (disp *GAME-display*))
-    (element-insert! "#rot-container" (.. getContainer disp))
-    (display (macroexpand '(.. create aMap  (js-closure digCallback))))
-    (.. create aMap (js-closure digCallback))))
+        (freeCells (make-vector 0))
+        (gameMap  (make-eq-hashtable)))
+    (.. create aMap (js-closure (digCallback freeCells gameMap)))
+    (values freeCells gameMap)))
+;;====================( End )=====================;;
 
-(define (draw-whole-map)
-  (for-each (lambda (cell)
-              (let ((c  (map string->number (string-split (car cell) ","))))
-                (.. draw *GAME-display* (car c) (cadr c) (cdr cell))))
-            (js-obj-to-alist *GAME-map*)))
 
-(define (player-init)
+
+;;=====================( IO )=====================;;
+(define (draw-whole-map gameMap)
+  (vector-for-each (lambda (key)
+              (let ((c  (map string->number (string-split key ","))))
+                (.. draw *GAME-display* (car c) (cadr c) (hashtable-ref gameMap key "#"))))
+            (hashtable-keys gameMap)))
+
+(define (player-draw pl)
+  (.. draw *GAME-display*
+      (js-ref pl 'x)
+      (js-ref pl 'y)
+      "@"
+      "#ff0"))
+;;====================( End )=====================;;
+
+
+;;=============( Player Generation )==============;;
+;;random
+;;mutates freeCells
+(define (player-init freeCells)
   (let* ((index (floor (* (\> ROT 'RNG '(getUniform))
-                          (vector-length *GAME-freeCells*))))
-         (key (vector-ref (.. splice *GAME-freeCells* index 1) 0))
+                          (vector-length freeCells))))
+         (key (vector-ref (.. splice freeCells index 1) 0))
          (parts (string-split key ","))
          (x (string->number (car parts)))
          (y (string->number (cadr parts))))
-    (set! *GAME-player* (js-obj "x" x "y" y))
-    (player-draw *GAME-player*)))
+    (js-obj "x" x "y" y)))
+;;====================( End )=====================;;
 
-(define (player-draw pl)
-  (.. draw *GAME-display* (js-ref pl 'x)
-                          (js-ref pl 'y)
-                          "@"
-                          "#ff0"))
-
-(define (num-pair->key x y)
-  (string-append (number->string x) "," (number->string y)))
-
-
-(define (player-listen-key e pl)
+;;==============( Player Movement )===============;;
+;;Draws map -- ok
+;;returns a new player object
+(define (player-movement e pl gameMap freeCells)
   (let ((direction (js-ref KEYMAP (number->string (js-ref e 'keyCode)))))
     (if (defined? direction)
-          (let* ((diff (vector-ref (js-ref (js-ref ROT 'DIRS) "8") #|(\> ROT 'DIRS 8)|# direction))
-                 (cur-x (js-ref pl 'x))
-                 (cur-y (js-ref pl 'y))
-                 (new-x (+ cur-x (vector-ref diff 0)))
-                 (new-y (+ cur-y (vector-ref diff 1)))
-                 (new-key (num-pair->key new-x new-y)))
-            (if  (and (defined? (js-ref *GAME-map* new-key))
-                      (> (.. indexOf *GAME-freeCells* new-key) -1))
-                 (begin
-                   (.. draw *GAME-display* cur-x cur-y
-                       (js-ref *GAME-map* (num-pair->key cur-x cur-y)))
-                   (js-obj "x" new-x "y" new-y))
-                  pl))
-          pl)))
-
-(define (defined? x) (not (js-undefined? x)))
-
-(define (game e map cells player)
-  1)
+        (let* ((diff (vector-ref (js-ref (js-ref ROT 'DIRS) "8") #|(\> ROT 'DIRS 8)|# direction))
+               (cur-x (js-ref pl 'x))
+               (cur-y (js-ref pl 'y))
+               (new-x (+ cur-x (vector-ref diff 0)))
+               (new-y (+ cur-y (vector-ref diff 1)))
+               (new-key (num-pair->key new-x new-y)))
+          (if  (and (hashtable-ref gameMap new-key #f)
+                    (> (.. indexOf freeCells new-key) -1))
+               (begin
+                 (.. draw *GAME-display* cur-x cur-y
+                     (js-ref gameMap (num-pair->key cur-x cur-y)))
+                 (js-obj "x" new-x "y" new-y))
+               pl))
+        pl)))
+;;====================( End )=====================;;
 
 
-
+;;===================(  Main )====================;;
 ((lambda ()
-   (map-gen)
-   (draw-whole-map)
-   (player-init)
-   (add-handler! "body"
-                 "keydown"
-                 (lambda (e)
-                   (set! *GAME-player* (player-listen-key e *GAME-player*))
-                   (player-draw *GAME-player*)))))
+   (element-insert! "#rot-container" (.. getContainer *GAME-display*)) ;;add canvas to html
+   (let-values (((freeCells gameMap) (map-gen)))
+     (draw-whole-map gameMap)
+     (let ((player (player-init freeCells)))
+       (player-draw player)
+       (add-handler! "body"
+                     "keydown"
+                     (lambda (e)
+                       (set! player (player-movement e player gameMap freeCells))
+                       (player-draw player)))))))
+;;====================( End )=====================;;
