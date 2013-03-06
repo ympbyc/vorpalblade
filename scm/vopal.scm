@@ -42,10 +42,10 @@
             (hashtable-set! gameMap key "."))
           (hashtable-set! gameMap key "#")))))
 
-(define (map-gen)
+(define (map-gen seed)
   (\> ROT
       'RNG
-      '(setSeed 123))
+      `(setSeed ,seed))
   (let ((aMap (js-new "ROT.Map.Digger" 100 40))
         (freeCells (make-vector 0))
         (gameMap  (make-eq-hashtable)))
@@ -77,7 +77,7 @@
 (define (player-init freeCells)
   (let* ((index (floor (* (\> ROT 'RNG '(getUniform))
                           (vector-length freeCells))))
-         (key (vector-ref (.. splice freeCells index 1) 0))
+         (key (vector-ref freeCells index) #|(vector-ref (.. splice freeCells index 1) 0)|#)
          (parts (string-split key ","))
          (x (string->number (car parts)))
          (y (string->number (cadr parts))))
@@ -90,7 +90,7 @@
 (define (player-movement e pl gameMap freeCells)
   (let ((direction (js-ref KEYMAP (number->string (js-ref e 'keyCode)))))
     (if (defined? direction)
-        (let* ((diff (vector-ref (js-ref (js-ref ROT 'DIRS) "8") #|(\> ROT 'DIRS 8)|# direction))
+        (let* ((diff (vector-ref (js-ref (js-ref ROT 'DIRS) "8") direction))
                (cur-x (js-ref pl 'x))
                (cur-y (js-ref pl 'y))
                (new-x (+ cur-x (vector-ref diff 0)))
@@ -100,7 +100,7 @@
                     (> (.. indexOf freeCells new-key) -1))
                (begin
                  (.. draw *GAME-display* cur-x cur-y
-                     (js-ref gameMap (num-pair->key cur-x cur-y)))
+                     (hashtable-ref gameMap (num-pair->key cur-x cur-y) "."))
                  (js-obj "x" new-x "y" new-y))
                pl))
         pl)))
@@ -110,7 +110,7 @@
 ;;===================(  Main )====================;;
 ((lambda ()
    (element-insert! "#rot-container" (.. getContainer *GAME-display*)) ;;add canvas to html
-   (let-values (((freeCells gameMap) (map-gen)))
+   (let-values (((freeCells gameMap) (map-gen 1234)))
      (draw-whole-map gameMap)
      (let ((player (player-init freeCells)))
        (player-draw player)
