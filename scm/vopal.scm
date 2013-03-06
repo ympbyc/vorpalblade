@@ -1,5 +1,5 @@
 (define-macro (.. method obj . args)
-  `(js-invocation ,obj (,method ,@args)))
+  `(js-invoke ,obj ',method ,@args))
 
 (define \> js-invocation)
 
@@ -26,8 +26,9 @@
       '(setSeed 123))
   (let ((aMap (js-new "ROT.Map.Digger" 100 40))
         (disp *GAME-display*))
-    (element-insert! "#rot-container" (.. getContainer disp));append canvas
-    (.. create aMap digCallback)))
+    (element-insert! "#rot-container" (.. getContainer disp))
+    (display (macroexpand '(.. create aMap  (js-closure digCallback))))
+    (.. create aMap (js-closure digCallback))))
 
 (define (draw-whole-map)
   (for-each (lambda (cell)
@@ -57,14 +58,14 @@
 
 (define (player-listen-key e pl)
   (let ((direction (js-ref KEYMAP (number->string (js-ref e 'keyCode)))))
-    (if (not (js-undefined? direction))
-          (let* ((diff (vector-ref (js-ref (js-ref ROT 'DIRS) "8") direction))
+    (if (defined? direction)
+          (let* ((diff (vector-ref (js-ref (js-ref ROT 'DIRS) "8") #|(\> ROT 'DIRS 8)|# direction))
                  (cur-x (js-ref pl 'x))
                  (cur-y (js-ref pl 'y))
                  (new-x (+ cur-x (vector-ref diff 0)))
                  (new-y (+ cur-y (vector-ref diff 1)))
                  (new-key (num-pair->key new-x new-y)))
-            (if  (and (not (js-undefined? (js-ref *GAME-map* new-key)))
+            (if  (and (defined? (js-ref *GAME-map* new-key))
                       (> (.. indexOf *GAME-freeCells* new-key) -1))
                  (begin
                    (.. draw *GAME-display* cur-x cur-y
@@ -72,6 +73,12 @@
                    (js-obj "x" new-x "y" new-y))
                   pl))
           pl)))
+
+(define (defined? x) (not (js-undefined? x)))
+
+(define (game e map cells player)
+  1)
+
 
 
 ((lambda ()
