@@ -72,12 +72,11 @@
 
 
 ;;=============( Player Generation )==============;;
-;;random
-;;mutates freeCells
+;;clean and functional
 (define (player-init freeCells)
   (let* ((index (floor (* (\> ROT 'RNG '(getUniform))
                           (vector-length freeCells))))
-         (key (vector-ref freeCells index) #|(vector-ref (.. splice freeCells index 1) 0)|#)
+         (key (vector-ref freeCells index))
          (parts (string-split key ","))
          (x (string->number (car parts)))
          (y (string->number (cadr parts))))
