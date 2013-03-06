@@ -1,3 +1,8 @@
+(define-macro (.. method obj . args)
+  `(js-invocation ,obj (,method ,@args)))
+
+(define \> js-invocation)
+
 (define ROT (js-eval "ROT"))
 
 (define *GAME-display* (js-new "ROT.Display" (js-obj  "fontSize" 14 "width" 100 "height" 40)))
@@ -16,25 +21,24 @@
       (js-set! *GAME-map* key "#"))))
 
 (define (map-gen)
-  (js-invocation ROT 'RNG
-                 '(setSeed 123))
+  (\> ROT
+      'RNG
+      '(setSeed 123))
   (let ((aMap (js-new "ROT.Map.Digger" 100 40))
         (disp *GAME-display*))
-    (element-insert! "#rot-container" (js-invocation disp '(getContainer)));append canvas
-    (js-invocation aMap `(create ,digCallback))))
+    (element-insert! "#rot-container" (.. getContainer disp));append canvas
+    (.. create aMap digCallback)))
 
 (define (draw-whole-map)
   (for-each (lambda (cell)
               (let ((c  (map string->number (string-split (car cell) ","))))
-                (js-invocation *GAME-display*
-                           `(draw ,(car c) ,(cadr c) ,(cdr cell)))))
+                (.. draw *GAME-display* (car c) (cadr c) (cdr cell))))
             (js-obj-to-alist *GAME-map*)))
 
 (define (player-init)
-  (let* ((index (floor (* (js-invocation ROT 'RNG '(getUniform))
+  (let* ((index (floor (* (\> ROT 'RNG '(getUniform))
                           (vector-length *GAME-freeCells*))))
-         (ss (console-log (vector-ref (js-invocation *GAME-freeCells* `(splice ,index 1)) 0)))
-         (key (vector-ref (js-invocation *GAME-freeCells* `(splice ,index 1)) 0))
+         (key (vector-ref (.. splice *GAME-freeCells* index 1) 0))
          (parts (string-split key ","))
          (x (string->number (car parts)))
          (y (string->number (cadr parts))))
@@ -42,10 +46,11 @@
     (player-draw *GAME-player*)))
 
 (define (player-draw pl)
-  (js-invocation *GAME-display* `(draw ,(js-ref pl 'x)
-                                       ,(js-ref pl 'y)
-                                       "@"
-                                       "#ff0")))
+  (.. draw *GAME-display* (js-ref pl 'x)
+                          (js-ref pl 'y)
+                          "@"
+                          "#ff0"))
+
 (define (num-pair->key x y)
   (string-append (number->string x) "," (number->string y)))
 
@@ -60,11 +65,10 @@
                  (new-y (+ cur-y (vector-ref diff 1)))
                  (new-key (num-pair->key new-x new-y)))
             (if  (and (not (js-undefined? (js-ref *GAME-map* new-key)))
-                      (> (js-invocation *GAME-freeCells* `(indexOf ,new-key)) -1))
+                      (> (.. indexOf *GAME-freeCells* new-key) -1))
                  (begin
-                   (js-invocation *GAME-display*
-                                  `(draw ,cur-x ,cur-y
-                                         ,(js-ref *GAME-map* (num-pair->key cur-x cur-y))))
+                   (.. draw *GAME-display* cur-x cur-y
+                       (js-ref *GAME-map* (num-pair->key cur-x cur-y)))
                    (js-obj "x" new-x "y" new-y))
                   pl))
           pl)))
