@@ -34,8 +34,8 @@
 ;;Although some mutations are performed, CLEAN AND FUNCTIONAL as a whole.
 
 (define (digCallback freeCells gameMap)
-  (lambda (x y wall)
-    (let ((key (num-pair->key x y)))
+  (lambda [x y wall]
+    (let ([key (num-pair->key x y)])
       (if (= wall 0)
           (begin
             (vector-set! freeCells (vector-length freeCells) key)
@@ -46,9 +46,9 @@
   (\> ROT
       'RNG
       `(setSeed ,seed))
-  (let ((aMap (js-new "ROT.Map.Digger" 100 40))
-        (freeCells (make-vector 0))
-        (gameMap  (make-eq-hashtable)))
+  (let ([aMap (js-new "ROT.Map.Digger" 100 40)]
+        [freeCells (make-vector 0)]
+        [gameMap  (make-eq-hashtable)])
     (.. create aMap (js-closure (digCallback freeCells gameMap)))
     (values freeCells gameMap)))
 ;;====================( End )=====================;;
@@ -57,10 +57,10 @@
 
 ;;=====================( IO )=====================;;
 (define (draw-whole-map gameMap)
-  (vector-for-each (lambda (key)
-              (let ((c  (map string->number (string-split key ","))))
-                (.. draw *GAME-display* (car c) (cadr c) (hashtable-ref gameMap key "#"))))
-            (hashtable-keys gameMap)))
+  (vector-for-each (lambda [key]
+                     (let ([c  (map string->number (string-split key ","))])
+                       (.. draw *GAME-display* (car c) (cadr c) (hashtable-ref gameMap key "#"))))
+                   (hashtable-keys gameMap)))
 
 (define (player-draw pl)
   (.. draw *GAME-display*
@@ -73,20 +73,20 @@
 
 ;;==============( Player Datatype )===============;;
 (define-record-type (player make-player player?)
-  (fields (immutable x player-x)
-          (immutable y palyer-y)))
+  (fields [immutable x player-x]
+          [immutable y palyer-y]))
 ;;====================( End )=====================;;
 
 
 ;;=============( Player Generation )==============;;
 ;;clean and functional
 (define (player-init freeCells)
-  (let* ((index (floor (* (\> ROT 'RNG '(getUniform))
-                          (vector-length freeCells))))
-         (key (vector-ref freeCells index))
-         (parts (string-split key ","))
-         (x (string->number (car parts)))
-         (y (string->number (cadr parts))))
+  (let* ([index (floor (* (\> ROT 'RNG '(getUniform))
+                          (vector-length freeCells)))]
+         [key (vector-ref freeCells index)]
+         [parts (string-split key ",")]
+         [x (string->number (car parts))]
+         [y (string->number (cadr parts))])
     (make-player x y)))
 ;;====================( End )=====================;;
 
@@ -94,14 +94,14 @@
 ;;Draws map -- ok
 ;;returns a new player object
 (define (player-movement e pl gameMap freeCells)
-  (let ((direction (js-ref KEYMAP (number->string (js-ref e 'keyCode)))))
+  (let ([direction (js-ref KEYMAP (number->string (js-ref e 'keyCode)))])
     (if (defined? direction)
-        (let* ((diff (vector-ref (js-ref (js-ref ROT 'DIRS) "8") direction))
-               (cur-x (player-x pl))
-               (cur-y (player-y pl))
-               (new-x (+ cur-x (vector-ref diff 0)))
-               (new-y (+ cur-y (vector-ref diff 1)))
-               (new-key (num-pair->key new-x new-y)))
+        (let* ([diff (vector-ref (js-ref (js-ref ROT 'DIRS) "8") direction)]
+               [cur-x (player-x pl)]
+               [cur-y (player-y pl)]
+               [new-x (+ cur-x (vector-ref diff 0))]
+               [new-y (+ cur-y (vector-ref diff 1))]
+               [new-key (num-pair->key new-x new-y)])
           (if  (and (hashtable-ref gameMap new-key #f)
                     (> (.. indexOf freeCells new-key) -1))
                (begin
@@ -114,15 +114,15 @@
 
 
 ;;===================(  Main )====================;;
-((lambda ()
+((lambda []
    (element-insert! "#rot-container" (.. getContainer *GAME-display*)) ;;add canvas to html
-   (let-values (((freeCells gameMap) (map-gen 1234)))
+   (let-values ([[freeCells gameMap] (map-gen 1234)])
      (draw-whole-map gameMap)
-     (let ((player (player-init freeCells)))
+     (let ([player (player-init freeCells)])
        (player-draw player)
        (add-handler! "body"
                      "keydown"
-                     (lambda (e)
+                     (lambda [e]
                        (set! player (player-movement e player gameMap freeCells))
                        (player-draw player)))))))
 ;;====================( End )=====================;;
