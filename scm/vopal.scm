@@ -40,6 +40,7 @@
 
 (define-macro (define-generic name)
   `(define ,name (.. define_generic CLOS)))
+
 (define-macro (define-method gener argspec . body)
   (let ([args (fold-right (lambda (x acc)
                             (if (pair? x)
@@ -49,26 +50,29 @@
                                       (cons x (cdr acc))))) '(() . ()) argspec)])
     `(.. define_method CLOS
          ,gener
-         ,(list->vector (car args))
+         (list->vector (map eval ',(car args)))
          (js-closure (lambda ,(cdr args) ,@body)))))
 
-(define-macro (define-class name . parents)
-  `(define ,name (.. define_class CLOS ,(list->vector parents))))
+(define-macro (define-class name parents . fn)
+  (if (null? fn)
+      `(define ,name (.. define_class CLOS ,(list->vector `,parents)))
+      `(define ,name (.. define_class CLOS ,(list->vector `,parents) (js-closure ,(car fn))))))
 
 (define (make class obj)
   (.. make CLOS class obj))
 
+(define (clos-slot-exists x key typ)
+  (.. slot_exists CLOS key typ))
+
 (define CLOS (js-eval "CLOS"))
 ;;====================( End )=====================;;
 
-(define-class animal)
-(define-generic talk)
-(console-log animal)
-(console-log (macroexpand '(define-method talk ((a animal))
-  (string-append (js-ref a 'name) " said something"))))
-(define-method talk ((a ,animal))
-  (string-append (js-ref a 'name) " said something"))
-(display (talk (make animal (js-obj "name" "Sammy"))))
+(define-class animal () (lambda (x)
+                          (clos-slot-exists x 'name "string")))
+  (define-generic talk)
+  (define-method talk ((a animal))
+    (string-append (js-ref a 'name) " said something"))
+  (display (js-call talk (make animal (js-obj "name" "Sammy"))))
 
 ;;===================( Config )===================;;
 (define *map-width* 60)
@@ -130,6 +134,8 @@
 
 ;;==============( Player Datatype )===============;;
 ;;player has to be represented as a js object due to the lib we are using
+;(define-class <player> '() )
+
 (define (make-player x y gameMap freeCells)
   (letrec ([player (js-obj
                     "x" x
@@ -194,6 +200,7 @@
   (.. addActor *GAME-engine* pl)
   (.. start *GAME-engine*))
 ;;====================( End )=====================;;
+
 
 ;;===================(  Main )====================;;
 ((lambda []
