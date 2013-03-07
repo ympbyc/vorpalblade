@@ -21,12 +21,30 @@
 (define (defined? x) (not (js-undefined? x)))
 
 (define ROT (js-eval "ROT"))
+
+(define (construct-eq-hashtable . contents)
+  (define (set-fields! ht contents)
+    (if (null? contents) ht
+        (begin (hashtable-set! ht (car contents) (cadr contents))
+               (set-fields! ht (cddr contents)))))
+  (let ([size (length contents)])
+    (if (= 0 (mod size 2))
+        (set-fields! (make-eq-hashtable (/ size 2)) contents)
+        (raise "construct-eq-hashtable: arguments must be in the form 'key val key val ...'"))))
 ;;====================( End )=====================;;
 
 
 ;;===================( Config )===================;;
 (define *GAME-display* (js-new "ROT.Display" (js-obj  "fontSize" 14 "width" 100 "height" 40)))
-(define KEYMAP (js-eval "({ 38: 0, 33: 1, 39: 2, 34: 3, 40: 4, 35: 5, 37: 6, 36: 7})"))
+(define KEYMAP (construct-eq-hashtable
+                38 0
+                33 1
+                39 2
+                34 3
+                40 4
+                35 5
+                37 6
+                36 7))
 ;;====================( End )=====================;;
 
 
@@ -74,7 +92,7 @@
 ;;==============( Player Datatype )===============;;
 (define-record-type (player make-player player?)
   (fields [immutable x player-x]
-          [immutable y palyer-y]))
+          [immutable y player-y]))
 ;;====================( End )=====================;;
 
 
@@ -94,8 +112,8 @@
 ;;Draws map -- ok
 ;;returns a new player object
 (define (player-movement e pl gameMap freeCells)
-  (let ([direction (js-ref KEYMAP (number->string (js-ref e 'keyCode)))])
-    (if (defined? direction)
+  (let ([direction (hashtable-ref KEYMAP (js-ref e 'keyCode) #f)])
+    (if direction
         (let* ([diff (vector-ref (js-ref (js-ref ROT 'DIRS) "8") direction)]
                [cur-x (player-x pl)]
                [cur-y (player-y pl)]
