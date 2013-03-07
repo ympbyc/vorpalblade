@@ -64,10 +64,17 @@
 
 (define (player-draw pl)
   (.. draw *GAME-display*
-      (js-ref pl 'x)
-      (js-ref pl 'y)
+      (player-x pl)
+      (player-y pl)
       "@"
       "#ff0"))
+;;====================( End )=====================;;
+
+
+;;==============( Player Datatype )===============;;
+(define-record-type (player make-player player?)
+  (fields (immutable x player-x)
+          (immutable y palyer-y)))
 ;;====================( End )=====================;;
 
 
@@ -80,7 +87,7 @@
          (parts (string-split key ","))
          (x (string->number (car parts)))
          (y (string->number (cadr parts))))
-    (js-obj "x" x "y" y)))
+    (make-player x y)))
 ;;====================( End )=====================;;
 
 ;;==============( Player Movement )===============;;
@@ -90,8 +97,8 @@
   (let ((direction (js-ref KEYMAP (number->string (js-ref e 'keyCode)))))
     (if (defined? direction)
         (let* ((diff (vector-ref (js-ref (js-ref ROT 'DIRS) "8") direction))
-               (cur-x (js-ref pl 'x))
-               (cur-y (js-ref pl 'y))
+               (cur-x (player-x pl))
+               (cur-y (player-y pl))
                (new-x (+ cur-x (vector-ref diff 0)))
                (new-y (+ cur-y (vector-ref diff 1)))
                (new-key (num-pair->key new-x new-y)))
@@ -100,7 +107,7 @@
                (begin
                  (.. draw *GAME-display* cur-x cur-y
                      (hashtable-ref gameMap (num-pair->key cur-x cur-y) "."))
-                 (js-obj "x" new-x "y" new-y))
+                 (make-player new-x new-y))
                pl))
         pl)))
 ;;====================( End )=====================;;
