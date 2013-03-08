@@ -14,8 +14,10 @@
 
         var tmpl = fs.readFileSync('index.html', 'utf8');
         var vopalScm = fs.readFileSync('scm/vopal.scm', 'utf8');
+        var helperScm = fs.readFileSync('scm/helper.scm', 'utf8');
         var html = template(tmpl, {
             vopalScm: vopalScm
+        ,   helperScm: helperScm
         });
 
         res.writeHead(200, {'Content-Type': 'text/html'});

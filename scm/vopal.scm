@@ -8,85 +8,6 @@
 ;;;;
 ;;;; ympbyc the Programmer    Chaotic human hacker
 
-
-;;===================( Helpers )==================;;
-(define-macro (.. method obj . args)
-  `(js-invoke ,obj ',method ,@args))
-
-(define \> js-invocation)
-
-(define (num-pair->key x y)
-  (string-append (number->string x) "," (number->string y)))
-
-(define (defined? x) (not (js-undefined? x)))
-
-(define ROT (js-eval "ROT"))
-
-(define (construct-eq-hashtable . contents)
-  (define (set-fields! ht contents)
-    (if (null? contents) ht
-        (begin (hashtable-set! ht (car contents) (cadr contents))
-               (set-fields! ht (cddr contents)))))
-  (let ([size (length contents)])
-    (if (= 0 (mod size 2))
-        (set-fields! (make-eq-hashtable (/ size 2)) contents)
-        (raise "construct-eq-hashtable: arguments must be in the form 'key val key val ...'"))))
-
-(define (add-handler-once! sel ev f)
-  (letrec ([handler (add-handler! sel ev (lambda (e)
-                                           (remove-handler! sel ev handler)
-                                           (f e)))])))
-
-(define-macro (js-lambda args . body)
-  `(js-closure (lambda ,args ,@body)))
-
-(define-macro (define-generic name)
-  `(define ,name (.. define_generic CLOS)))
-
-(define-macro (define-method gener argspec . body)
-  (let ([args (fold-right (lambda (x acc)
-                            (if (pair? x)
-                                (cons (cons (cadr x) (car acc))
-                                      (cons (car x) (cdr acc)))
-                                (cons (cons '(js-eval "undefined") (car acc))
-                                      (cons x (cdr acc))))) '(() . ()) argspec)])
-    `(.. define_method CLOS
-         ,gener
-         (list->vector (map eval ',(car args)))
-         (js-closure (lambda ,(cdr args) ,@body)))))
-
-(define-macro (define-class name parents . fn)
-  (if (null? fn)
-      `(define ,name (.. define_class CLOS (list->vector ,parents)))
-      `(define ,name (.. define_class CLOS (list->vector ,parents) (js-closure ,(car fn))))))
-
-(define (make class obj)
-  (.. make CLOS class obj))
-
-(define (clos-slot-exists x key typ)
-  (.. slot_exists CLOS key typ))
-
-(define CLOS (js-eval "CLOS"))
-
-
-
-(define (vector->stream vec)
-  (define (aux i)
-    (if (= i (vector-length vec))
-        '()
-        (lambda () (cons (vector-ref vec i) (aux (+ i 1))))))
-  (aux 0))
-
-(define (stream-contains? strm x)
-  (define (aux strm)
-    (if (null? strm) #f
-        (let ([ss (strm)])
-          (or (eqv? (car ss) x)
-              (aux (cdr ss))))))
-  (aux strm))
-;;====================( End )=====================;;
-
-
 ;;===================( Config )===================;;
 (define *map-width* 60)
 (define *map-height* 24)
@@ -101,6 +22,11 @@
                   35 5
                   37 6
                   36 7))
+(define *objects* (construct-eq-hashtable
+                   'player #f
+                   'enemies '()))
+(define (game-player) (hashtable-ref *objects* 'player #f))
+(define (game-enemies) (hashtable-ref *objects* 'enemies #f))
 ;;====================( End )=====================;;
 
 
@@ -114,7 +40,8 @@
           (begin
             (vector-set! freeCells (vector-length freeCells) key)
             (hashtable-set! gameMap key "."))
-          (hashtable-set! gameMap key "#")))))
+          ;(hashtable-set! gameMap key "#")
+          ))))
 
 (define (map-gen seed)
   (\> ROT
@@ -203,8 +130,8 @@
      (eqv? "." (hashtable-ref gameMap (num-pair->key x y) #f))))
   (define (path-callback path) (js-lambda [x y]
                                           (.. push path (vector x y))))
-  (let* ([x 4] ;;pl-x
-         [y 6]
+  (let* ([x (creature-x (game-player))]
+         [y (creature-y (game-player))]
          [cur-x (creature-x en)]
          [cur-y (creature-y en)]
          [path (make-vector 0)]
@@ -265,11 +192,14 @@
 (define (game-init gameMap freeCells)
   (let ([pl (creature-init <player> gameMap freeCells)])
     (.. addActor *GAME-engine* pl)
+    (hashtable-set! *objects* 'player pl)
     (js-call creature-draw pl))
-  (for-each (lambda (_)
-              (let ([en (creature-init <enemy> gameMap freeCells)])
-                (.. addActor *GAME-engine* en)
-                (js-call creature-draw en))) (iota 5))
+  (hashtable-set! *objects* 'enemies
+                  (map (lambda (_)
+                         (let ([en (creature-init <enemy> gameMap freeCells)])
+                           (.. addActor *GAME-engine* en)
+                           (js-call creature-draw en)
+                           en)) (iota 5)))
   (.. start *GAME-engine*))
 ;;====================( End )=====================;;
 
