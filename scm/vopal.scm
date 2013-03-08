@@ -202,14 +202,13 @@
   (define passbale-callback (js-lambda [x y]
      (eqv? "." (hashtable-ref gameMap (num-pair->key x y) #f))))
   (define (path-callback path) (js-lambda [x y]
-                (vector-set! path (vector-length path) (vector x y))))
+                                          (.. push path (vector x y))))
   (let* ([x 4] ;;pl-x
          [y 6]
          [cur-x (creature-x en)]
          [cur-y (creature-y en)]
-         [path '#()]
+         [path (make-vector 0)]
          [astar (js-new "ROT.Path.AStar" x y passbale-callback (js-obj "topology" 4))])
-    (display (num-pair->key cur-x cur-y)) (newline)
     (.. compute astar cur-x cur-y (path-callback path))
     (.. shift path) ;remove current position
     (cond [(= (\> path 'length) 1)
