@@ -11,17 +11,18 @@
 ;;===================( Config )===================;;
 (define *map-width* 60)
 (define *map-height* 24)
+(define *seed* 9)
 (define *GAME-display* (js-new "ROT.Display" (js-obj  "fontSize" 13 "fontFamily" "Osaka" "width" *map-width* "height" *map-height*)))
 (define *GAME-engine* (js-new "ROT.Engine"))
 (define *keymap* (construct-eq-hashtable
-                  38 0
-                  33 1
-                  39 2
-                  34 3
-                  40 4
-                  35 5
-                  37 6
-                  36 7))
+                  89 7    ;y
+                  75 0    ;k
+                  85 1    ;u
+                  76 2    ;l
+                  78 3    ;n
+                  74 4    ;j
+                  66 5    ;b
+                  72 6))  ;h
 (define *objects* (construct-eq-hashtable
                    'player #f
                    'enemies '()))
@@ -46,10 +47,11 @@
 (define (map-gen seed)
   (\> ROT
       'RNG
-      `(setSeed ,seed))
-  (let ([aMap (js-new "ROT.Map.Digger" *map-width* *map-height*)]
+      `(setSeed ,seed)) ;ROT.Map.Digger
+  (let ([aMap (js-new "ROT.Map.Cellular" *map-width* *map-height*)]
         [freeCells (make-vector 0)]
         [gameMap  (make-eq-hashtable)])
+    (.. randomize aMap 0.5) ;;;
     (.. create aMap (js-closure (digCallback freeCells gameMap)))
     (values freeCells gameMap)))
 ;;====================( End )=====================;;
@@ -207,7 +209,7 @@
 ;;===================(  Main )====================;;
 ((lambda []
    (element-insert! "#rot-container" (.. getContainer *GAME-display*)) ;;add canvas to html
-   (let-values ([[freeCells gameMap] (map-gen 24)])
+   (let-values ([[freeCells gameMap] (map-gen *seed*)])
      (draw-whole-map gameMap)
      (game-init gameMap freeCells))))
 ;;====================( End )=====================;;
