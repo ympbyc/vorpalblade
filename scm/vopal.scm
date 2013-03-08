@@ -33,10 +33,12 @@
         (raise "construct-eq-hashtable: arguments must be in the form 'key val key val ...'"))))
 
 (define (add-handler-once! sel ev f)
-  (define (handler e)
-    (remove-handler! sel ev handler)
-    (f e))
-  (add-handler! sel ev handler))
+  (letrec ([handler (add-handler! sel ev (lambda (e)
+                                           (remove-handler! sel ev handler)
+                                           (f e)))])))
+
+(define-macro (js-lambda args . body)
+  `(js-closure (lambda ,args ,@body)))
 
 (define-macro (define-generic name)
   `(define ,name (.. define_generic CLOS)))
@@ -46,7 +48,7 @@
                             (if (pair? x)
                                 (cons (cons (cadr x) (car acc))
                                       (cons (car x) (cdr acc)))
-                                (cons (cons (js-eval "undefined") (car acc))
+                                (cons (cons '(js-eval "undefined") (car acc))
                                       (cons x (cdr acc))))) '(() . ()) argspec)])
     `(.. define_method CLOS
          ,gener
@@ -55,8 +57,8 @@
 
 (define-macro (define-class name parents . fn)
   (if (null? fn)
-      `(define ,name (.. define_class CLOS ,(list->vector `,parents)))
-      `(define ,name (.. define_class CLOS ,(list->vector `,parents) (js-closure ,(car fn))))))
+      `(define ,name (.. define_class CLOS (list->vector ,parents)))
+      `(define ,name (.. define_class CLOS (list->vector ,parents) (js-closure ,(car fn))))))
 
 (define (make class obj)
   (.. make CLOS class obj))
@@ -65,14 +67,25 @@
   (.. slot_exists CLOS key typ))
 
 (define CLOS (js-eval "CLOS"))
+
+
+
+(define (vector->stream vec)
+  (define (aux i)
+    (if (= i (vector-length vec))
+        '()
+        (lambda () (cons (vector-ref vec i) (aux (+ i 1))))))
+  (aux 0))
+
+(define (stream-contains? strm x)
+  (define (aux strm)
+    (if (null? strm) #f
+        (let ([ss (strm)])
+          (or (eqv? (car ss) x)
+              (aux (cdr ss))))))
+  (aux strm))
 ;;====================( End )=====================;;
 
-(define-class animal () (lambda (x)
-                          (clos-slot-exists x 'name "string")))
-  (define-generic talk)
-  (define-method talk ((a animal))
-    (string-append (js-ref a 'name) " said something"))
-  (display (js-call talk (make animal (js-obj "name" "Sammy"))))
 
 ;;===================( Config )===================;;
 (define *map-width* 60)
@@ -115,6 +128,23 @@
 ;;====================( End )=====================;;
 
 
+;;=================( Datatype  )==================;;
+;;player has to be represented as a js object due to the lib we are using
+(define-class <rot-actor> '() (lambda [x]
+                               (and (clos-slot-exists x 'getSpeed "function")
+                                    (clos-slot-exists x 'act "function"))))
+(define-class <creature> `(,<rot-actor>) (lambda [p]
+                            (and (clos-slot-exists p 'x "number")
+                                 (clos-slot-exists p 'y "number"))))
+(define-class <player> `(,<creature>))
+(define-class <enemy>  `(,<creature>))
+
+(define (creature-x cr)
+  (js-ref cr 'x))
+(define (creature-y cr)
+  (js-ref cr 'y))
+;;====================( End )=====================;;
+
 
 ;;=====================( IO )=====================;;
 (define (draw-whole-map gameMap)
@@ -123,51 +153,88 @@
                        (.. draw *GAME-display* (car c) (cadr c) (hashtable-ref gameMap key "#"))))
                    (hashtable-keys gameMap)))
 
-(define (player-draw pl)
+(define-generic creature-draw)
+(define-method  creature-draw ([pl <player>])
   (.. draw *GAME-display*
-      (player-x pl)
-      (player-y pl)
+      (creature-x pl)
+      (creature-y pl)
       "@"
       "#ff0"))
+(define-method  creature-draw ([en <enemy>])
+  (.. draw *GAME-display*
+      (creature-x en)
+      (creature-y en)
+      "P"
+      "red"))
 ;;====================( End )=====================;;
 
 
-;;==============( Player Datatype )===============;;
-;;player has to be represented as a js object due to the lib we are using
-;(define-class <player> '() )
-
-(define (make-player x y gameMap freeCells)
-  (letrec ([player (js-obj
-                    "x" x
-                    "y" y
-                    "getSpeed" (js-closure (lambda () 100))
-                    "act" (js-closure (lambda ()
-                                        (.. lock *GAME-engine*)
-                                        (add-handler-once!
-                                         "body"
-                                         "keydown"
-                                         (lambda [e]
-                                           (player-movement e player gameMap freeCells)
-                                           (player-draw player))))))])
-    player))
-
-(define (player-x pl)
-  (js-ref pl 'x))
-(define (player-y pl)
-  (js-ref pl 'y))
+;;=================( Creatures )==================;;
+(define (make-creature <class> x y gameMap freeCells)
+  (letrec ([creature (make <class>
+                       (js-obj
+                        "x"        x
+                        "y"        y
+                        "getSpeed" (js-lambda [] (js-call get-speed creature))
+                        "act"      (js-lambda [] (js-call rot-act creature gameMap freeCells))))])
+    creature))
 ;;====================( End )=====================;;
 
 
-;;=============( Player Generation )==============;;
+;;=================( Actor Spec )=================;;
+(define-generic get-speed)
+(define-method get-speed ([pl <player>]) 100)
+(define-method get-speed ([pl <enemy>]) 100)
+
+(define-generic rot-act)
+
+
+(define-method rot-act ([pl <player>] gameMap freeCells)
+  (.. lock *GAME-engine*)
+  (add-handler-once! "body"
+                     "keydown"
+                     (lambda [e]
+                       (player-movement e pl gameMap freeCells)
+                       (js-call creature-draw pl)
+                       (.. unlock *GAME-engine*))))
+
+(define-method rot-act ([en <enemy>] gameMap freeCells)
+  (define passbale-callback (js-lambda [x y]
+     (eqv? "." (hashtable-ref gameMap (num-pair->key x y) #f))))
+  (define (path-callback path) (js-lambda [x y]
+                (vector-set! path (vector-length path) (vector x y))))
+  (let* ([x 4] ;;pl-x
+         [y 6]
+         [cur-x (creature-x en)]
+         [cur-y (creature-y en)]
+         [path '#()]
+         [astar (js-new "ROT.Path.AStar" x y passbale-callback (js-obj "topology" 4))])
+    (display (num-pair->key cur-x cur-y)) (newline)
+    (.. compute astar cur-x cur-y (path-callback path))
+    (.. shift path) ;remove current position
+    (cond [(= (\> path 'length) 1)
+           (.. lock *GAME-engine*)
+           (display "GAME OVER")]
+          [else
+           (let ([new-x (vector-ref (vector-ref path 0) 0)]
+                 [new-y (vector-ref (vector-ref path 0) 1)])
+             (.. draw *GAME-display* cur-x cur-y (hashtable-ref gameMap (num-pair->key cur-x cur-y) "."))
+             (js-set! en "x" new-x)
+             (js-set! en "y" new-y)
+             (js-call creature-draw en))])))
+;;====================( End )=====================;;
+
+
+;;=============( Creature Generation )============;;
 ;;clean and functional
-(define (player-init gameMap freeCells)
+(define (creature-init <class> gameMap freeCells)
   (let* ([index (floor (* (\> ROT 'RNG '(getUniform))
                           (vector-length freeCells)))]
          [key (vector-ref freeCells index)]
          [parts (string-split key ",")]
          [x (string->number (car parts))]
          [y (string->number (cadr parts))])
-    (make-player x y gameMap freeCells)))
+    (make-creature <class> x y gameMap freeCells)))
 ;;====================( End )=====================;;
 
 
@@ -178,8 +245,8 @@
   (let ([direction (hashtable-ref *keymap* (js-ref e 'keyCode) #f)])
     (if direction
         (let* ([diff (vector-ref (js-ref (js-ref ROT 'DIRS) "8") direction)]
-               [cur-x (player-x pl)]
-               [cur-y (player-y pl)]
+               [cur-x (creature-x pl)]
+               [cur-y (creature-y pl)]
                [new-x (+ cur-x (vector-ref diff 0))]
                [new-y (+ cur-y (vector-ref diff 1))]
                [new-key (num-pair->key new-x new-y)])
@@ -196,8 +263,14 @@
 
 
 ;;================( Game Engine )=================;;
-(define (game-init pl)
-  (.. addActor *GAME-engine* pl)
+(define (game-init gameMap freeCells)
+  (let ([pl (creature-init <player> gameMap freeCells)])
+    (.. addActor *GAME-engine* pl)
+    (js-call creature-draw pl))
+  (for-each (lambda (_)
+              (let ([en (creature-init <enemy> gameMap freeCells)])
+                (.. addActor *GAME-engine* en)
+                (js-call creature-draw en))) (iota 5))
   (.. start *GAME-engine*))
 ;;====================( End )=====================;;
 
@@ -207,7 +280,5 @@
    (element-insert! "#rot-container" (.. getContainer *GAME-display*)) ;;add canvas to html
    (let-values ([[freeCells gameMap] (map-gen 24)])
      (draw-whole-map gameMap)
-     (let ([player (player-init gameMap freeCells)])
-       (player-draw player)
-       (game-init player)))))
+     (game-init gameMap freeCells))))
 ;;====================( End )=====================;;
