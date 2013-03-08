@@ -11,8 +11,12 @@
 ;;===================( Config )===================;;
 (define *map-width* 60)
 (define *map-height* 24)
-(define *seed* 9)
-(define *GAME-display* (js-new "ROT.Display" (js-obj  "fontSize" 13 "fontFamily" "Osaka" "width" *map-width* "height" *map-height*)))
+(define *seed* 128)
+(define *GAME-display* (js-new "ROT.Display" (js-obj  "fontSize" 13
+                                                      "fontFamily" "Osaka"
+                                                      "fontStyle" "bold"
+                                                      "width" *map-width*
+                                                      "height" *map-height*)))
 (define *GAME-engine* (js-new "ROT.Engine"))
 (define *keymap* (construct-eq-hashtable
                   89 7    ;y
@@ -28,34 +32,34 @@
                    'enemies '()))
 (define (game-player) (hashtable-ref *objects* 'player #f))
 (define (game-enemies) (hashtable-ref *objects* 'enemies #f))
-;;====================( End )=====================;;
 
 
 ;;===============( Map Generation )===============;;
 ;;Although some mutations are performed, CLEAN AND FUNCTIONAL as a whole.
 
 (define (digCallback freeCells gameMap)
-  (lambda [x y wall]
+  (lambda [x y cell]
     (let ([key (num-pair->key x y)])
-      (if (= wall 0)
-          (begin
-            (vector-set! freeCells (vector-length freeCells) key)
-            (hashtable-set! gameMap key "."))
-          ;(hashtable-set! gameMap key "#")
-          ))))
+      (cond
+       [(= cell 0) ;floor
+        (vector-set! freeCells (vector-length freeCells) key)
+        (hashtable-set! gameMap key ".")]
+       [(= cell 2) ;door
+        (vector-set! freeCells (vector-length freeCells) key)
+        (hashtable-set! gameMap key "+")]
+       [(not (eqv? "#" (hashtable-ref gameMap key "#"))) ;;if cell conflicts, make it a floor
+        (hashtable-set! gameMap key ".")]
+       [else (hashtable-set! gameMap key "#")]))))
 
 (define (map-gen seed)
   (\> ROT
       'RNG
-      `(setSeed ,seed)) ;ROT.Map.Digger
-  (let ([aMap (js-new "ROT.Map.Cellular" *map-width* *map-height*)]
+      `(setSeed ,seed))
+  (let ([aMap (js-new "ROT.Map.Digger" *map-width* *map-height*)]
         [freeCells (make-vector 0)]
         [gameMap  (make-eq-hashtable)])
-    (.. randomize aMap 0.5) ;;;
     (.. create aMap (js-closure (digCallback freeCells gameMap)))
     (values freeCells gameMap)))
-;;====================( End )=====================;;
-
 
 ;;=================( Datatype  )==================;;
 ;;player has to be represented as a js object due to the lib we are using
@@ -72,14 +76,29 @@
   (js-ref cr 'x))
 (define (creature-y cr)
   (js-ref cr 'y))
-;;====================( End )=====================;;
+
+
+;;==================(  Visual )===================;;
+(define *char-color* (construct-eq-hashtable
+                      "#" "#222"
+                      "." "#fff"
+                      "+" "#f57125"))
+(define *char-bg-color* (construct-eq-hashtable
+                         "#" "#c0a9b3"
+                         "." "#12122c"
+                         "+" "#752612"))
+(define (char-color ch)
+  (hashtable-ref *char-color* ch "#fff"))
+(define (char-bg-color ch)
+  (hashtable-ref *char-bg-color* ch "#fff"))
 
 
 ;;=====================( IO )=====================;;
 (define (draw-whole-map gameMap)
   (vector-for-each (lambda [key]
-                     (let ([c  (map string->number (string-split key ","))])
-                       (.. draw *GAME-display* (car c) (cadr c) (hashtable-ref gameMap key "#"))))
+                     (let ([c  (map string->number (string-split key ","))]
+                           [chr (hashtable-ref gameMap key "#")])
+                       (.. draw *GAME-display* (car c) (cadr c) chr (char-color chr) (char-bg-color chr))))
                    (hashtable-keys gameMap)))
 
 (define-generic creature-draw)
@@ -95,7 +114,6 @@
       (creature-y en)
       "P"
       "red"))
-;;====================( End )=====================;;
 
 
 ;;=================( Creatures )==================;;
@@ -107,13 +125,12 @@
                         "getSpeed" (js-lambda [] (js-call get-speed creature))
                         "act"      (js-lambda [] (js-call rot-act creature gameMap freeCells))))])
     creature))
-;;====================( End )=====================;;
 
 
 ;;=================( Actor Spec )=================;;
 (define-generic get-speed)
 (define-method get-speed ([pl <player>]) 100)
-(define-method get-speed ([pl <enemy>]) 100)
+(define-method get-speed ([pl <enemy>]) 50)
 
 (define-generic rot-act)
 
@@ -140,17 +157,17 @@
          [astar (js-new "ROT.Path.AStar" x y passbale-callback (js-obj "topology" 4))])
     (.. compute astar cur-x cur-y (path-callback path))
     (.. shift path) ;remove current position
-    (cond [(= (\> path 'length) 1)
+    (cond [(<= (\> path 'length) 1)
            (.. lock *GAME-engine*)
            (display "GAME OVER")]
           [else
            (let ([new-x (vector-ref (vector-ref path 0) 0)]
-                 [new-y (vector-ref (vector-ref path 0) 1)])
-             (.. draw *GAME-display* cur-x cur-y (hashtable-ref gameMap (num-pair->key cur-x cur-y) "."))
+                 [new-y (vector-ref (vector-ref path 0) 1)]
+                 [char (hashtable-ref gameMap (num-pair->key cur-x cur-y) ".")])
+             (.. draw *GAME-display* cur-x cur-y char (char-color char) (char-bg-color char))
              (js-set! en "x" new-x)
              (js-set! en "y" new-y)
              (js-call creature-draw en))])))
-;;====================( End )=====================;;
 
 
 ;;=============( Creature Generation )============;;
@@ -163,7 +180,6 @@
          [x (string->number (car parts))]
          [y (string->number (cadr parts))])
     (make-creature <class> x y gameMap freeCells)))
-;;====================( End )=====================;;
 
 
 ;;==============( Player Movement )===============;;
@@ -180,14 +196,13 @@
                [new-key (num-pair->key new-x new-y)])
           (if  (and (hashtable-ref gameMap new-key #f)
                     (> (.. indexOf freeCells new-key) -1))
-               (begin
+               (let ([char (hashtable-ref gameMap (num-pair->key cur-x cur-y) ".")])
                  (.. draw *GAME-display* cur-x cur-y
-                     (hashtable-ref gameMap (num-pair->key cur-x cur-y) "."))
+                     char (char-color char) (char-bg-color char))
                  (js-set! pl "x" new-x)
                  (js-set! pl "y" new-y))
                pl))
         pl)))
-;;====================( End )=====================;;
 
 
 ;;================( Game Engine )=================;;
@@ -201,9 +216,8 @@
                          (let ([en (creature-init <enemy> gameMap freeCells)])
                            (.. addActor *GAME-engine* en)
                            (js-call creature-draw en)
-                           en)) (iota 5)))
+                           en)) (iota 2)))
   (.. start *GAME-engine*))
-;;====================( End )=====================;;
 
 
 ;;===================(  Main )====================;;
@@ -212,4 +226,3 @@
    (let-values ([[freeCells gameMap] (map-gen *seed*)])
      (draw-whole-map gameMap)
      (game-init gameMap freeCells))))
-;;====================( End )=====================;;

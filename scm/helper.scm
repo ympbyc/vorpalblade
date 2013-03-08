@@ -73,4 +73,9 @@
           (or (eqv? (car ss) x)
               (aux (cdr ss))))))
   (aux strm))
+
+(define (random-int n m)
+  (+ (floor (* (\> ROT 'RNG '(getUniform)) n)) m))
+(define (random-item vec)
+  (vector-ref vec (random-int (vector-length vec) 0)))
 ;;====================( End )=====================;;
