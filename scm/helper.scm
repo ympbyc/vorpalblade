@@ -4,9 +4,6 @@
 
 (define \> js-invocation)
 
-(define (num-pair->key x y)
-  (string-append (number->string x) "," (number->string y)))
-
 (define (defined? x) (not (js-undefined? x)))
 
 (define ROT (js-eval "ROT"))
@@ -29,8 +26,9 @@
 (define-macro (js-lambda args . body)
   `(js-closure (lambda ,args ,@body)))
 
-(define-macro (define-generic name)
-  `(define ,name (.. define_generic CLOS)))
+(define-macro (define-generic name . memoize)
+  (let ([mem (if (null? memoize) #f (car memoize))])
+    `(define ,name (.. define_generic CLOS ,mem))))
 
 (define-macro (define-method gener argspec . body)
   (let ([args (fold-right (lambda (x acc)
@@ -57,6 +55,12 @@
 
 (define CLOS (js-eval "CLOS"))
 
+
+(define-generic _num-pair->key #t) ;for memoization
+(define-method _num-pair->key (x y)
+  (string-append (number->string x) "," (number->string y)))
+(define (num-pair->key x y)
+  (js-call _num-pair->key x y))
 
 
 (define (vector->stream vec)
