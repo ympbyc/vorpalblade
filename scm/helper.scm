@@ -105,12 +105,20 @@
           (immutable green rgb-green)
           (immutable blue rgb-blue)))
 (define (rgb->css-string c)
-  (string-append "rgb("
-          (number->string (rgb-red c)) ","
-          (number->string (rgb-green c)) ","
-          (number->string (rgb-blue c)) ")"))
+  (if (rgb? c)
+      (string-append "rgb("
+                     (number->string (rgb-red c)) ","
+                     (number->string (rgb-green c)) ","
+                     (number->string (rgb-blue c)) ")")
+      c))
 (define (random-close-color base var)
   (make-rgb (+ (rgb-red   base) (random-integer var))
             (+ (rgb-green base) (random-integer var))
             (+ (rgb-blue  base) (random-integer var))))
+
+(define Math (js-eval "Math"))
+(define Window (js-eval "window"))
+
+(define-macro (timeout n body)
+  `(.. setTimeout Window (js-lambda [] ,body) ,n))
 ;;====================( End )=====================;;
