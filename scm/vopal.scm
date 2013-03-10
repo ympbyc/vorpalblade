@@ -9,10 +9,11 @@
 ;;;; ympbyc the Programmer    Chaotic human hacker
 
 ;;===================( Config )===================;;
-(define *map-width* 60)
-(define *map-height* 24)
-(define *seed* 1234)
+(define *map-width* 64)
+(define *map-height* 32)
+(define *seed* 1236)
 (define *path-cache-duration* 10)
+(define *visibility-distance* 5)
 (define *GAME-display* (js-new "ROT.Display" (js-obj  "fontSize" 16
                                                       "fontFamily" "Monaco"
                                                       "textBaseline" "middle"
@@ -45,30 +46,30 @@
     (let ([key (num-pair->key x y)])
       (cond
        [(= cell 0) ;floor
-        (.. push freeCells key)
+        (hashtable-set! freeCells key #t)
         (hashtable-set! gameMap key ".")]
        [(= cell 2) ;door
-        (.. push freeCells key)
+        (hashtable-set! freeCells key #t)
         (hashtable-set! gameMap key "+")]
        [(not (eqv? "#" (hashtable-ref gameMap key "#"))) ;;if cell conflicts, make it a floor
-        (hashtable-set! gameMap key ".")]
-       [else (hashtable-set! gameMap key "#")]))))
+        (hashtable-set! gameMap key (hashtable-ref gameMap key "#"))]
+       [(= cell 1) (hashtable-set! gameMap key "#")]))))
 
 (define (map-gen seed)
   (\> ROT
       'RNG
       `(setSeed ,seed))
-  (let ([aMap (js-new "ROT.Map.IceyMaze" *map-width* *map-height*)]
-        [rooms (map room-gen-random (iota 10))] ;;;;;
-        [freeCells (make-vector 0)]
+  (let ([aMap (js-new "ROT.Map.Rangersheck" *map-width* *map-height*)]
+        [rooms (map room-gen-random (iota 5))] ;;;;;
+        [freeCells (make-eq-hashtable)]
         [gameMap  (make-eq-hashtable)])
     (.. create aMap (js-closure (digCallback freeCells gameMap)))
     (map (lambda (room) (.. create (car room) (js-closure (digCallback freeCells gameMap)))) rooms) ;;;;
     (values freeCells gameMap)))
 
 (define (room-gen-random)
-  (let ([door-x (random-int (- *map-width* 1)  1)]
-        [door-y (random-int (- *map-height* 1) 1)])
+  (let ([door-x (random-int (- *map-width* 10)  1)]
+        [door-y (random-int (- *map-height* 5) 1)])
     (cons
      (\> ROT
         'Map
@@ -83,6 +84,23 @@
                                   "roomHeight" (vector (random-int 10 5)
                                                        (random-int 10 5)))))
      (cons door-x door-y))))
+
+
+;;====================( FOV )=====================;;
+(define (light-passes? gameMap)
+  (define-generic l-pass #t) ;memoize
+  (define-method l-pass (x y)
+    (eqv? "." (hashtable-ref gameMap (num-pair->key x y) "#"))) ;;;
+  l-pass)
+
+(define memoized-light-passes #f)
+
+(define (draw-fov gameMap freeCells pl-x pl-y)
+  (or memoized-light-passes (set! memoized-light-passes (light-passes? gameMap)))
+  (let ([fov (js-new "ROT.FOV.PreciseShadowcasting" memoized-light-passes)])
+    (.. compute fov pl-x pl-y *visibility-distance*
+        (js-lambda (x y)
+                   (draw-colored-char x y (hashtable-ref gameMap (num-pair->key x y) "#"))))))
 
 
 ;;=================( Datatype  )==================;;
@@ -172,6 +190,7 @@
                      "keydown"
                      (lambda [e]
                        (player-movement e pl gameMap freeCells)
+                       (draw-fov gameMap freeCells (creature-x pl) (creature-y pl))
                        (js-call creature-draw pl)
                        (.. unlock *GAME-engine*))))
 
@@ -184,8 +203,8 @@
 ;;clean and functional
 (define (creature-init <class> gameMap freeCells)
   (let* ([index (floor (* (\> ROT 'RNG '(getUniform))
-                          (vector-length freeCells)))]
-         [key (vector-ref freeCells index)]
+                          (hashtable-size freeCells)))]
+         [key (vector-ref (hashtable-keys freeCells) index)]
          [parts (string-split key ",")]
          [x (string->number (car parts))]
          [y (string->number (cadr parts))])
@@ -204,19 +223,24 @@
                [new-x (+ cur-x (vector-ref diff 0))]
                [new-y (+ cur-y (vector-ref diff 1))]
                [new-key (num-pair->key new-x new-y)])
-          (if  (and (hashtable-ref gameMap new-key #f)
-                    (> (.. indexOf freeCells new-key) -1))
-               (let ([char (hashtable-ref gameMap (num-pair->key cur-x cur-y) ".")])
-                 (draw-colored-char cur-x cur-y char)
-                 (js-set! pl "x" new-x)
-                 (js-set! pl "y" new-y))
-               pl))
+          (if (hashtable-ref freeCells new-key #f)
+              (let ([char (hashtable-ref gameMap (num-pair->key cur-x cur-y) ".")])
+                (draw-colored-char cur-x cur-y char)
+                (js-set! pl "x" new-x)
+                (js-set! pl "y" new-y))
+              pl))
         pl)))
 
 ;;===============( Enemy Movement )===============;;
+(define (char-passable? ch)
+  (cond
+   [(eqv? ch ".") #t]
+   [(eqv? ch "+") #t]
+   [else #f]))
+
 (define (enemy-movement en gameMap freeCells)
   (define passbale-callback (js-lambda [x y]
-     (eqv? "." (hashtable-ref gameMap (num-pair->key x y) #f))))
+     (char-passable? (hashtable-ref gameMap (num-pair->key x y) #f))))
   (define (path-callback path) (js-lambda [x y]
                                           (.. push path (vector x y))))
   (let* ([x (creature-x (game-player))]
@@ -264,5 +288,5 @@
 ((lambda []
    (element-insert! "#rot-container" (.. getContainer *GAME-display*)) ;;add canvas to html
    (let-values ([[freeCells gameMap] (map-gen *seed*)])
-     (draw-whole-map gameMap)
+     ;(draw-whole-map gameMap)
      (game-init gameMap freeCells))))
