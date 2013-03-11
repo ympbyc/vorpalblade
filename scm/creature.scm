@@ -122,7 +122,7 @@
            ;(.. lock *GAME-engine*)
            ;(display "Bites!")
            (.. removeActor *GAME-engine* en)]
-          [(> (vector-length path) 1)
+          [(> (vector-length path) 2)
            (.. shift path) ;remove current position
            (let* ([new-x (vector-ref (vector-ref path 0) 0)]
                   [new-y (vector-ref (vector-ref path 0) 1)]
