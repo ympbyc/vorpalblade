@@ -80,11 +80,12 @@
         (let* ([diff (vector-ref (js-ref (js-ref ROT 'DIRS) "8") direction)]
                [cur-x (creature-x pl)]
                [cur-y (creature-y pl)]
+               [cur-key (num-pair->key cur-x cur-y)]
                [new-x (+ cur-x (vector-ref diff 0))]
                [new-y (+ cur-y (vector-ref diff 1))]
                [new-key (num-pair->key new-x new-y)])
           (set-add! freeCells cur-key) ;free current cell
-          (if (set-contains? freeCells (num-pair->key cur-x cur-y))
+          (if (set-contains? freeCells new-key)
               (let ([char (game-map-ref gameMap cur-x cur-y ".")])
                 (draw-colored-char cur-x cur-y char)
                 (set-remove! freeCells new-key) ;reserve new cell
