@@ -121,4 +121,10 @@
 
 (define-macro (timeout n body)
   `(.. setTimeout Window (js-lambda [] ,body) ,n))
+
+
+(define (game-map-ref gmap x y default)
+  (hashtable-ref gmap (num-pair->key x y) default))
+(define (game-map-set! gmap x y val)
+  (hashtable-set! gmap (num-pair->key x y) val))
 ;;====================( End )=====================;;

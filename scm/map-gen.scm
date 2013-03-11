@@ -45,8 +45,8 @@
     (values freeCells gameMap)))
 
 (define (room-gen-random)
-  (let ([door-x (random-int (- *map-width* 10)  1)]
-        [door-y (random-int (- *map-height* 5) 1)])
+  (let ([door-x (random-int (- *map-width* 20)  1)]
+        [door-y (random-int (- *map-height* 7) 1)])
     (cons
      (\> ROT
         'Map

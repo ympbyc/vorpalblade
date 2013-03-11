@@ -83,9 +83,9 @@
                [new-x (+ cur-x (vector-ref diff 0))]
                [new-y (+ cur-y (vector-ref diff 1))]
                [new-key (num-pair->key new-x new-y)])
-          (set-add! freeCells (num-pair->key cur-x cur-y)) ;free current cell
-          (if (set-contains? freeCells new-key)
-              (let ([char (hashtable-ref gameMap (num-pair->key cur-x cur-y) ".")])
+          (set-add! freeCells cur-key) ;free current cell
+          (if (set-contains? freeCells (num-pair->key cur-x cur-y))
+              (let ([char (game-map-ref gameMap cur-x cur-y ".")])
                 (draw-colored-char cur-x cur-y char)
                 (set-remove! freeCells new-key) ;reserve new cell
                 (js-set! pl "x" new-x)
@@ -99,7 +99,7 @@
 
 (define (enemy-movement en gameMap freeCells)
   (define passbale-callback (js-lambda [x y]
-     (char-passable? (hashtable-ref gameMap (num-pair->key x y) #f))))
+        (char-passable? (game-map-ref gameMap x y #f))))
   (define (path-callback path) (js-lambda [x y]
                                           (.. push path (vector x y))))
   (let* ([x (creature-x (game-player))]
@@ -126,7 +126,7 @@
            (.. shift path) ;remove current position
            (let* ([new-x (vector-ref (vector-ref path 0) 0)]
                   [new-y (vector-ref (vector-ref path 0) 1)]
-                  [char (hashtable-ref gameMap cur-key ".")]
+                  [char (game-map-ref gameMap cur-x cur-y ".")]
                   [new-key (num-pair->key new-x new-y)])
              (draw-colored-char cur-x cur-y char) ;free current cell
              (js-set! en "_cached_path" path)

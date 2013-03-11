@@ -9,8 +9,8 @@
 ;;;; ympbyc the Programmer    Chaotic human hacker
 
 ;;===================( Config )===================;;
-(define *map-width* 120)
-(define *map-height* 38)
+(define *map-width* 70)
+(define *map-height* 30)
 (define *seed* 1236)
 (define *path-cache-duration* 10)
 (define *visibility-distance* 4)

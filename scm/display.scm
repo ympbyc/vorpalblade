@@ -2,7 +2,7 @@
 (define (light-passes? gameMap)
   (define-generic l-pass #t) ;memoize
   (define-method l-pass (x y)
-    (let ([cell (hashtable-ref gameMap (num-pair->key x y) "#")])
+    (let ([cell (game-map-ref gameMap x y "#")])
       (set-contains? *light-pass-char* cell)))
   l-pass)
 
@@ -18,7 +18,7 @@
          (x y r v)
          (draw-colored-char
           x y
-          (hashtable-ref gameMap (num-pair->key x y) "#"))))))
+          (game-map-ref gameMap x y "#"))))))
 
 
 
