@@ -12,18 +12,24 @@
             return res.end(fs.readFileSync(req_url.pathname.slice(1), 'utf8'));
             } catch (err) { return res.end('X|');  }
 
-        var tmpl = fs.readFileSync('index.html', 'utf8');
-        var vopalScm = fs.readFileSync('scm/vopal.scm', 'utf8');
-        var helperScm = fs.readFileSync('scm/helper.scm', 'utf8');
-        var html = template(tmpl, {
-            vopalScm: vopalScm
-        ,   helperScm: helperScm
-        });
+        var tmpl = rf('index.html');
+        var scm = {};
+        scm.vopal = rf('scm/vopal.scm');
+        scm.mapGen = rf('scm/map-gen.scm');
+        scm.creature = rf('scm/creature.scm');
+        scm.display = rf('scm/display.scm');
+        scm.helper = rf('scm/helper.scm');
+        var html = template(tmpl, scm);
 
         res.writeHead(200, {'Content-Type': 'text/html'});
         return res.end(html);
 
     }).listen(8080);
+
+
+    function rf (fname) {
+        return fs.readFileSync(fname, 'utf8');
+    }
 }());
 
 
