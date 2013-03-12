@@ -118,6 +118,7 @@
 
 (define Math (js-eval "Math"))
 (define Window (js-eval "window"))
+(define floodfill (js-eval "floodfill"))
 
 (define-macro (timeout n body)
   `(.. setTimeout Window (js-lambda [] ,body) ,n))

@@ -11,6 +11,9 @@
        [(= cell 0) ;floor
         (set-add! freeCells key)
         (hashtable-set! gameMap key ".")]
+       [(= cell 3) ;corridor
+        (set-add! freeCells key)
+        (hashtable-set! gameMap key "\"")]
        [(= cell 1) (hashtable-set! gameMap key "#")]))))
 
 (define (digCallback-second freeCells gameMap)

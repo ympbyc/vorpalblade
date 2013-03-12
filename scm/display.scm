@@ -10,16 +10,26 @@
 
 ;responsible only for the dungeon.
 (define (draw-fov gameMap freeCells pl-x pl-y)
-  (or memoized-light-passes
-      (set! memoized-light-passes (light-passes? gameMap)))
-  (let ([fov (js-new "ROT.FOV.PreciseShadowcasting" memoized-light-passes)])
-    (.. compute fov pl-x pl-y *visibility-distance*
-        (js-lambda
-         (x y r v)
-         (draw-colored-char
-          x y
-          (game-map-ref gameMap x y "#"))))))
+  (if (eqv? (game-map-ref gameMap pl-x pl-y #f) ".")
+      (draw-floodfill gameMap pl-x pl-y)
+      (or memoized-light-passes
+          (set! memoized-light-passes (light-passes? gameMap)))
+      (let ([fov (js-new "ROT.FOV.PreciseShadowcasting" memoized-light-passes)])
+        (.. compute fov pl-x pl-y *visibility-distance*
+            (js-lambda
+             (x y r v)
+             (draw-colored-char
+              x y
+              (game-map-ref gameMap x y "#")))))))
 
+(define (draw-floodfill gameMap pl-x pl-y)
+  (display pl-x) (display pl-y) (display (game-map-ref gameMap pl-x pl-y "*"))  (newline)
+  (js-call floodfill gameMap pl-x pl-y
+           (js-lambda [x y]
+                      (console-log x)
+                      (draw-colored-char
+                      x y
+                      (game-map-ref gameMap x y "#")))))
 
 
 
@@ -27,11 +37,13 @@
 (define *char-color* (construct-eq-hashtable
                       "#" "#222"
                       "." "#fff"
+                      "\"" "#69d455"
                       "+" "#f57125"
                       "~" (make-rgb 135 115 255))) ;blue
 (define *char-bg-color* (construct-eq-hashtable
                          "#" "#c0a9b3"
                          "." "#12122c"
+                         "\"" "#12122c"
                          "+" "#752612"
                          "~" (make-rgb 38 54 138))) ;light blue
 (define (char-color ch)

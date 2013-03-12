@@ -36,8 +36,8 @@
 (define (game-player) (hashtable-ref *objects* 'player #f))
 (define (game-enemies) (hashtable-ref *objects* 'enemies #f))
 
-(define *light-pass-char* (set "." "~"))
-(define *creature-pass-char* (set "." "~" "+"))
+(define *light-pass-char* (set "." "~" "\""))
+(define *creature-pass-char* (set "." "~" "+" "\""))
 
 
 ;;================( Game Engine )=================;;
