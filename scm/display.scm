@@ -21,17 +21,17 @@
     (.. compute fov pl-x pl-y *visibility-distance*
         (js-lambda
          (x y r v)
-         (set-add! *lit-floor* (num-pair->key x y))
          (draw-colored-char
           x y
           (game-map-ref gameMap x y "#"))))))
 
 (define (draw-floodfill gameMap pl-x pl-y)
   (floodfill gameMap pl-x pl-y
-           (lambda [x y]
-                      (draw-colored-char
-                      x y
-                      (game-map-ref gameMap x y "#")))))
+             (lambda [x y]
+               (set-add! *lit-floor* (num-pair->key x y))
+               (draw-colored-char
+                x y
+                (game-map-ref gameMap x y "#")))))
 
 
 
