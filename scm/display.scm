@@ -8,25 +8,27 @@
 
 (define memoized-light-passes #f)
 
+(define *lit-floor* (make-set))
+
 ;responsible only for the dungeon.
 (define (draw-fov gameMap freeCells pl-x pl-y)
-  (if (eqv? (game-map-ref gameMap pl-x pl-y #f) ".")
-      (draw-floodfill gameMap pl-x pl-y)
-      (or memoized-light-passes
-          (set! memoized-light-passes (light-passes? gameMap)))
-      (let ([fov (js-new "ROT.FOV.PreciseShadowcasting" memoized-light-passes)])
-        (.. compute fov pl-x pl-y *visibility-distance*
-            (js-lambda
-             (x y r v)
-             (draw-colored-char
-              x y
-              (game-map-ref gameMap x y "#")))))))
+  (or memoized-light-passes
+            (set! memoized-light-passes (light-passes? gameMap)))
+  (when (and (eqv? (game-map-ref gameMap pl-x pl-y #f) ".")
+             (not (set-contains? *lit-floor* (num-pair->key pl-x pl-y))))
+        (draw-floodfill gameMap pl-x pl-y))
+  (let ([fov (js-new "ROT.FOV.PreciseShadowcasting" memoized-light-passes)])
+    (.. compute fov pl-x pl-y *visibility-distance*
+        (js-lambda
+         (x y r v)
+         (set-add! *lit-floor* (num-pair->key x y))
+         (draw-colored-char
+          x y
+          (game-map-ref gameMap x y "#"))))))
 
 (define (draw-floodfill gameMap pl-x pl-y)
-  (display pl-x) (display pl-y) (display (game-map-ref gameMap pl-x pl-y "*"))  (newline)
-  (js-call floodfill gameMap pl-x pl-y
-           (js-lambda [x y]
-                      (console-log x)
+  (floodfill gameMap pl-x pl-y
+           (lambda [x y]
                       (draw-colored-char
                       x y
                       (game-map-ref gameMap x y "#")))))
