@@ -144,7 +144,9 @@
                     [c (inner b x (- y 1))]
                     [d (inner c x (+ y 1))])
              d)]
-          [else acc]))
+          [else
+           (callback  x y)
+           acc]))
   (inner '()  x y))
 
 ;;====================( End )=====================;;

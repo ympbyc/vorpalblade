@@ -9,21 +9,28 @@
 (define memoized-light-passes #f)
 
 (define *lit-floor* (make-set))
+(define *drawn-fov* (make-set))
+(define *fov-redraw-everytime* (set "~"))
 
 ;responsible only for the dungeon.
 (define (draw-fov gameMap freeCells pl-x pl-y)
   (or memoized-light-passes
-            (set! memoized-light-passes (light-passes? gameMap)))
-  (when (and (eqv? (game-map-ref gameMap pl-x pl-y #f) ".")
-             (not (set-contains? *lit-floor* (num-pair->key pl-x pl-y))))
-        (draw-floodfill gameMap pl-x pl-y))
-  (let ([fov (js-new "ROT.FOV.PreciseShadowcasting" memoized-light-passes)])
-    (.. compute fov pl-x pl-y *visibility-distance*
-        (js-lambda
-         (x y r v)
-         (draw-colored-char
-          x y
-          (game-map-ref gameMap x y "#"))))))
+      (set! memoized-light-passes (light-passes? gameMap)))
+  (let ([key (num-pair->key pl-x pl-y)]
+        [cell (game-map-ref gameMap pl-x pl-y #f)])
+    (when (and (eqv? cell ".")
+               (not (set-contains? *lit-floor* key)))
+          (draw-floodfill gameMap pl-x pl-y))
+    (when (or (set-contains? *fov-redraw-everytime* cell)
+              (not (set-contains? *drawn-fov* (num-pair->key pl-x pl-y))))
+          (let ([fov (js-new "ROT.FOV.PreciseShadowcasting" memoized-light-passes)])
+            (.. compute fov pl-x pl-y *visibility-distance*
+                (js-lambda
+                 (x y r v)
+                 (set-add! *drawn-fov* (num-pair->key x y))
+                 (draw-colored-char
+                  x y
+                  (game-map-ref gameMap x y "#"))))))))
 
 (define (draw-floodfill gameMap pl-x pl-y)
   (floodfill gameMap pl-x pl-y
