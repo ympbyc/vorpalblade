@@ -59,5 +59,5 @@
 ((lambda []
    (element-insert! "#rot-container" (.. getContainer *GAME-display*)) ;;add canvas to html
    (let-values ([[freeCells gameMap] (map-gen *seed*)])
-     (draw-whole-map gameMap)
+     ;(draw-whole-map gameMap)
      (game-init gameMap freeCells))))

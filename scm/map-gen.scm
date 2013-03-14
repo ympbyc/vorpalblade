@@ -25,10 +25,6 @@
         (game-map-set! gameMap x y "\"")]
        [(= cell 1) (game-map-set! gameMap x y "#")]))))
 
-(define gm (make-empty-map 5 5))
-(game-map-set! gm 2 2 "@")
-(console-log gm)
-
 (define (digCallback-second freeCells gameMap)
   (lambda [x y cell]
     (let ([key (num-pair->key x y)])
