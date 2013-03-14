@@ -27,7 +27,7 @@
             (.. compute fov pl-x pl-y *visibility-distance*
                 (js-lambda
                  (x y r v)
-                 (set-add! *drawn-fov* (num-pair->key x y))
+                 ;(set-add! *drawn-fov* (num-pair->key x y))
                  (draw-colored-char
                   x y
                   (game-map-ref gameMap x y "#"))))))))
@@ -78,11 +78,10 @@
 
 ;;=====================( IO )=====================;;
 (define (draw-whole-map gameMap)
-  (vector-for-each (lambda [key]
-                     (let ([c  (map string->number (string-split key ","))]
-                           [chr (hashtable-ref gameMap key "#")])
-                       (draw-colored-char (car c) (cadr c) chr)))
-                   (hashtable-keys gameMap)))
+  (vector-for-each/key (lambda [row y]
+    (vector-for-each/key (lambda [chr x]
+      (draw-colored-char x y chr)) row))
+     gameMap))
 
 (define-generic creature-draw)
 (define-method  creature-draw ([pl <player>])
