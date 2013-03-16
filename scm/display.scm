@@ -18,19 +18,19 @@
       (set! memoized-light-passes (light-passes? gameMap)))
   (let ([key (num-pair->key pl-x pl-y)]
         [cell (game-map-ref gameMap pl-x pl-y #f)])
-    (when (and (eqv? cell ".")
+    (cond [(and (eqv? cell ".")
                (not (set-contains? *lit-floor* key)))
-          (draw-floodfill gameMap pl-x pl-y))
-    (when (or (set-contains? *fov-redraw-everytime* cell)
-              (not (set-contains? *drawn-fov* key)))
-          (let ([fov (js-new "ROT.FOV.PreciseShadowcasting" memoized-light-passes)])
-            (.. compute fov pl-x pl-y *visibility-distance*
-                (js-lambda
-                 (x y r v)
-                 (set-add! *drawn-fov* (num-pair->key x y))
-                 (draw-colored-char
-                  x y
-                  (game-map-ref gameMap x y "#"))))))))
+           (draw-floodfill gameMap pl-x pl-y)]
+          [(or (set-contains? *fov-redraw-everytime* cell)
+               (not (set-contains? *drawn-fov* key)))
+           (set-add! *drawn-fov* key)
+           (let ([fov (js-new "ROT.FOV.PreciseShadowcasting" memoized-light-passes)])
+             (.. compute fov pl-x pl-y *visibility-distance*
+                 (js-lambda
+                  (x y r v)
+                  (draw-colored-char
+                   x y
+                   (game-map-ref gameMap x y "#")))))])))
 
 (define (draw-floodfill gameMap pl-x pl-y)
   (floodfill gameMap pl-x pl-y
@@ -65,35 +65,36 @@
         [chbc (char-bg-color ch)])
     (if (and (rgb? chc) (< (.. random Math) 0.2))
         (draw-colored-char-variation x y ch chc chbc)
-        (.. draw *GAME-display* x y ch
+        (draw-cell *GAME-display* x y ch
           (rgb->css-string chc)
           (rgb->css-string chbc)))))
 
 (define (draw-colored-char-variation x y ch chc chbc)
   (timeout
    100
-   (.. draw *GAME-display* x y ch
+   (draw-cell *GAME-display* x y ch
        (rgb->css-string (random-close-color chc 40))
        (rgb->css-string (random-close-color chbc 40)))))
 
 ;;=====================( IO )=====================;;
 (define (draw-whole-map gameMap)
-  (vector-for-each (lambda [key]
-                     (let ([c  (map string->number (string-split key ","))]
-                           [chr (hashtable-ref gameMap key "#")])
-                       (draw-colored-char (car c) (cadr c) chr)))
-                   (hashtable-keys gameMap)))
+  (vector-for-each/key (lambda [row y]
+    (vector-for-each/key (lambda [chr x]
+      (draw-colored-char x y chr)) row))
+     gameMap))
 
 (define-generic creature-draw)
 (define-method  creature-draw ([pl <player>])
-  (.. draw *GAME-display*
+  (draw-cell *GAME-display*
       (creature-x pl)
       (creature-y pl)
       "@"
-      "#e0baf6"))
+      "#e0baf6"
+      "#000"))
 (define-method  creature-draw ([en <enemy>])
-  (.. draw *GAME-display*
+  (draw-cell *GAME-display*
       (creature-x en)
       (creature-y en)
       "f"
-      "#f57125"))
+      "#f57125"
+      "#000"))

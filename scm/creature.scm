@@ -7,10 +7,7 @@
                             (and (clos-slot-exists p 'x "number")
                                  (clos-slot-exists p 'y "number"))))
 (define-class <player> `(,<creature>))
-(define-class <enemy>  `(,<creature>)
-  (lambda (e)
-    (and (clos-slot-exists e '_cached_path)
-         (clos-slot-exists e '_cache_usage_count "number"))))
+(define-class <enemy>  `(,<creature>))
 
 (define (creature-x cr)
   (js-ref cr 'x))
@@ -24,9 +21,7 @@
                         "x"        x
                         "y"        y
                         "getSpeed" (js-lambda [] (js-call get-speed creature))
-                        "act"      (js-lambda [] (js-call rot-act creature gameMap freeCells))
-                        "_cached_path" '#()
-                        "_cache_usage_count" *path-cache-duration*))])
+                        "act"      (js-lambda [] (js-call rot-act creature gameMap freeCells))))])
     creature))
 
 (define (within-distance? cr1 cr2 distance)
@@ -109,29 +104,20 @@
          [cur-y (creature-y en)]
          [cur-key (num-pair->key cur-x cur-y)]
          [path (make-vector 0)]
-         [astar (js-new "ROT.Path.AStar" x y passbale-callback (js-obj "topology" 8))]
-         [c-usage-c (js-ref en "_cache_usage_count")]
-         [c-path (js-ref en "_cached_path")])
+         [astar (js-new "ROT.Path.AStar" x y passbale-callback (js-obj "topology" 8))])
     (set-add! freeCells cur-key)         ;free current cell
-    (cond [(and (< c-usage-c *path-cache-duration*) (> (vector-length c-path) 5))
-           (js-set! en "_cache_usage_count" (+ c-usage-c 1))
-           (set! path c-path)]
-          [else
-           (js-set! en "_cache_usage_count" 0)
-           (.. compute astar cur-x cur-y (path-callback path))])
-    (cond [(<= (vector-length path) 0)
-           ;(.. lock *GAME-engine*)
-           ;(display "Bites!")
-           (.. removeActor *GAME-engine* en)]
-          [(> (vector-length path) 2)
-           (.. shift path) ;remove current position
-           (let* ([new-x (vector-ref (vector-ref path 0) 0)]
-                  [new-y (vector-ref (vector-ref path 0) 1)]
-                  [char (game-map-ref gameMap cur-x cur-y ".")]
-                  [new-key (num-pair->key new-x new-y)])
-             (draw-colored-char cur-x cur-y char) ;free current cell
-             (js-set! en "_cached_path" path)
-             (when (set-contains? freeCells new-key)
-                   (set-remove! freeCells (num-pair->key new-x new-y)) ;reserve
-                   (js-set! en "x" new-x)
-                   (js-set! en "y" new-y)))])))
+    (when (within-distance? (game-player) en 10)
+          (.. compute astar cur-x cur-y (path-callback path))
+          (cond [(<= (vector-length path) 0)
+                 (.. removeActor *GAME-engine* en)] ;kill if unreachable
+                [(> (vector-length path) 2)
+                 (.. shift path) ;remove current position
+                 (let* ([new-x (vector-ref (vector-ref path 0) 0)]
+                        [new-y (vector-ref (vector-ref path 0) 1)]
+                        [char (game-map-ref gameMap cur-x cur-y ".")]
+                        [new-key (num-pair->key new-x new-y)])
+                   (draw-colored-char cur-x cur-y char) ;free current cell
+                   (when (set-contains? freeCells new-key)
+                         (set-remove! freeCells (num-pair->key new-x new-y)) ;reserve
+                         (js-set! en "x" new-x)
+                         (js-set! en "y" new-y)))]))))

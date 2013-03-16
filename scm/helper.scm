@@ -124,9 +124,9 @@
 
 
 (define (game-map-ref gmap x y default)
-  (hashtable-ref gmap (num-pair->key x y) default))
+  (vector-ref (vector-ref gmap y) x))
 (define (game-map-set! gmap x y val)
-  (hashtable-set! gmap (num-pair->key x y) val))
+  (vector-set! (vector-ref gmap y) x val))
 
 
 (define (floodfill gameMap x y callback)
@@ -147,5 +147,18 @@
              (callback  x y)
              acc])))
   (inner '()  x y))
+
+(define (range low high)
+  (if (= low high) '()
+      (cons low (range (+ low 1) high))))
+
+(define (vector-for-each/key f vec)
+  (for-each
+   (lambda [key]
+     (f (vector-ref vec key) key))
+   (range 0 (vector-length vec))))
+
+(define (draw-cell disp x y ch fgc bgc)
+  (if ch (.. draw disp x y ch fgc bgc)))
 
 ;;====================( End )=====================;;
