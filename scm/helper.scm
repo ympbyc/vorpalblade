@@ -133,20 +133,25 @@
   (floodfill- gameMap x y (game-map-ref gameMap x y #f) callback))
 
 (define (floodfill- gameMap x y val callback)
-  (define (inner acc x y)
+  (define (inner acc x y last-x last-y)
     (let ([key (num-pair->key x y)])
       (cond [(memv key acc) acc]
             [(eqv? val (game-map-ref gameMap x y #f))
              (callback  x y)
-             (letrec ([a (inner (cons (num-pair->key x y) acc) (- x 1) y)]
-                      [b (inner a (+ x 1) y)]
-                      [c (inner b x (- y 1))]
-                      [d (inner c x (+ y 1))])
-               d)]
+             (letrec ([a (cons (num-pair->key x y) acc)]
+                      [b
+                       (if (= (- x 1) last-x) a (inner a (- x 1) y x y))]
+                      [c
+                       (if (= (+ x 1) last-x) b (inner b (+ x 1) y x y))]
+                      [d
+                       (if (= (- y 1) last-y) c (inner c x (- y 1) x y))]
+                      [e
+                       (if (= (+ y 1) last-y) d (inner d x (+ y 1) x y))])
+               e)]
             [else
              (callback  x y)
              acc])))
-  (inner '()  x y))
+  (inner '()  x y -1 -1))
 
 (define (range low high)
   (if (= low high) '()
@@ -160,5 +165,9 @@
 
 (define (draw-cell disp x y ch fgc bgc)
   (if ch (.. draw disp x y ch fgc bgc)))
+
+(define (vector-of-length-more-than? vec n)
+  (and (vector? vec)
+       (> (vector-length vec) n)))
 
 ;;====================( End )=====================;;

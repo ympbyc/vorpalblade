@@ -51,7 +51,7 @@
 (define-method rot-act ([en <enemy>] gameMap freeCells)
   (enemy-movement en gameMap freeCells)
   (when (within-distance? (game-player) en *visibility-distance*)
-      (js-call creature-draw en)))
+        (js-call creature-draw en)))
 
 
 ;;=============( Creature Generation )============;;
@@ -104,10 +104,13 @@
          [cur-y (creature-y en)]
          [cur-key (num-pair->key cur-x cur-y)]
          [path (make-vector 0)]
+         [cached-path (js-ref en "_cached_path")]
          [astar (js-new "ROT.Path.AStar" x y passbale-callback (js-obj "topology" 8))])
     (set-add! freeCells cur-key)         ;free current cell
     (when (within-distance? (game-player) en 10)
-          (.. compute astar cur-x cur-y (path-callback path))
+          (if (vector-of-length-more-than? cached-path 5)
+              (set! path cached-path)
+              (.. compute astar cur-x cur-y (path-callback path)))
           (cond [(<= (vector-length path) 0)
                  (.. removeActor *GAME-engine* en)] ;kill if unreachable
                 [(> (vector-length path) 2)
@@ -119,5 +122,6 @@
                    (draw-colored-char cur-x cur-y char) ;free current cell
                    (when (set-contains? freeCells new-key)
                          (set-remove! freeCells (num-pair->key new-x new-y)) ;reserve
+                         (js-set! en "_cached_path" path)
                          (js-set! en "x" new-x)
                          (js-set! en "y" new-y)))]))))
