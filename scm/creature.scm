@@ -51,7 +51,7 @@
 (define-method rot-act ([en <enemy>] gameMap freeCells)
   (enemy-movement en gameMap freeCells)
   (when (within-distance? (game-player) en *visibility-distance*)
-      (js-call creature-draw en)))
+        (js-call creature-draw en)))
 
 
 ;;=============( Creature Generation )============;;
