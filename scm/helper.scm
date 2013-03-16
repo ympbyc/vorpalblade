@@ -166,4 +166,8 @@
 (define (draw-cell disp x y ch fgc bgc)
   (if ch (.. draw disp x y ch fgc bgc)))
 
+(define (vector-of-length-more-than? vec n)
+  (and (vector? vec)
+       (> (vector-length vec) n)))
+
 ;;====================( End )=====================;;
