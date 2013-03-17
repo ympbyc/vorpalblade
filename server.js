@@ -19,6 +19,7 @@
         scm.mapGen = rf('scm/map-gen.scm', res);
         scm.creature = rf('scm/creature.scm', res);
         scm.display = rf('scm/display.scm', res);
+        scm.status = rf('scm/status.scm', res);
         scm.helper = rf('scm/helper.scm', res);
         var html = template(tmpl, scm);
 
