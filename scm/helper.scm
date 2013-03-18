@@ -170,4 +170,10 @@
   (and (vector? vec)
        (> (vector-length vec) n)))
 
+(define (near-free-cell? freeCells x y)
+  (or (set-contains? freeCells (num-pair->key (+ x 1) y))
+      (set-contains? freeCells (num-pair->key (- x 1) y))
+      (set-contains? freeCells (num-pair->key x (+ y 1)))
+      (set-contains? freeCells (num-pair->key x (- y 1)))))
+
 ;;====================( End )=====================;;
