@@ -1,0 +1,5 @@
+./creature.scm:64:         [parts (string-split key ",")]
+./creature.scm:65:         [x (string->number (car parts))]
+./creature.scm:66:         [y (string->number (cadr parts))])
+./helper.scm:61:  (string-append (number->string x) "," (number->string y)))
+./helper.scm:126:      (string-append "rgb("

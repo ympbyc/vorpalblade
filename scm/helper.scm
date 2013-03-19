@@ -98,6 +98,23 @@
   (hashtable-set! s c #f))
 (define set-size hashtable-size)
 (define set-contents hashtable-keys)
+(define (set-for-each f set)
+  (vector-for-each (lambda (x)
+                         (f x))
+                       (set-contents set)))
+(define (set-intersect set1 set2)
+  (let ([intersection (make-set)])
+    (set-for-each (lambda (x)
+                           (when (set-contains? set2 x)
+                                 (set-add! intersection x)))
+                         set1)
+    intersection))
+
+
+(define (key-x key)
+  (string->number (car (string-split key ","))))
+(define (key-y key)
+  (string->number (cadr (string-split key ","))))
 
 
 (define-record-type (<rgb> make-rgb rgb?)
@@ -115,6 +132,10 @@
   (make-rgb (+ (rgb-red   base) (random-integer var))
             (+ (rgb-green base) (random-integer var))
             (+ (rgb-blue  base) (random-integer var))))
+(define (darker-color base)
+  (make-rgb (floor (* 0.5 (rgb-red base)))
+            (floor (* 0.5 (rgb-green base)))
+            (floor (* 0.5 (rgb-blue base)))))
 
 (define Math (js-eval "Math"))
 (define Window (js-eval "window"))
