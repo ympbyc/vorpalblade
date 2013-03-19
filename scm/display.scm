@@ -9,7 +9,7 @@
 (define memoized-light-passes #f)
 
 (define *drawn-fov* (make-set))
-(define *fov-redraw-everytime* (set "~"))
+(define *fov-redraw-everytime* (set "~" "+"))
 
 (define *currently-lit* (make-set))
 
