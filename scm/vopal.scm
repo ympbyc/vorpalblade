@@ -13,7 +13,7 @@
 (define *map-height* 35)
 (define *seed* 1236)
 (define *path-cache-duration* 10)
-(define *visibility-distance* 6)
+(define *visibility-distance* 8)
 (define *GAME-display* (js-new "ROT.Display" (js-obj  "fontSize" 16
                                                       "fontFamily" "Monaco"
                                                       "textBaseline" "middle"

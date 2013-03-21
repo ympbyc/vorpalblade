@@ -46,16 +46,16 @@
     (cond [(and (eqv? cell ".")
                 (not (set-contains? *currently-lit* key)))
            (draw-floodfill gameMap pl-x pl-y)]
-          [(eqv? cell ".") #f]
-          [(or (set-contains? *fov-redraw-everytime* cell)
-               (not (set-contains? *drawn-fov* key)))
-           (set-add! *drawn-fov* key)
-           (.. compute fov pl-x pl-y *visibility-distance*
-               (js-lambda [x y r v]
-                          (set-add! next-lit (num-pair->key x y))))
-           (draw-lit *currently-lit* next-lit gameMap)
-           (draw-darker *currently-lit* next-lit gameMap)
-           (set! *currently-lit* next-lit)])))
+     #;[(eqv? cell ".") #f]
+     [(or (set-contains? *fov-redraw-everytime* cell)
+          (not (set-contains? *drawn-fov* key)))
+      (set-add! *drawn-fov* key)
+      (.. compute fov pl-x pl-y *visibility-distance*
+          (js-lambda [x y r v]
+                     (set-add! next-lit (num-pair->key x y))))
+      (draw-lit *currently-lit* next-lit gameMap)
+      (draw-darker *currently-lit* next-lit gameMap)
+      (set! *currently-lit* next-lit)])))
 
 (define (draw-floodfill gameMap pl-x pl-y)
   (floodfill gameMap pl-x pl-y
