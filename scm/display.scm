@@ -85,7 +85,8 @@
 (define (char-bg-color ch)
   (hashtable-ref *char-bg-color* ch (make-rgb 255 255 255)))
 
-(define *variate-color* (set "#" "~" "\""))
+(define *variate-color* (set ;"#" "~" "\""
+                         ))
 (define (variate-color? ch)
   (set-contains? *variate-color* ch))
 

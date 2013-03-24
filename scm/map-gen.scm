@@ -55,7 +55,6 @@
            (js-closure (digCallback-second freeCells gameMap)))|#
            (.. create bMap (js-closure (digCallback-third freeCells gameMap)))
                 ) (iota 6))
-    (console-log gameMap)
     (values freeCells gameMap)))
 
 (define (room-gen-random)
