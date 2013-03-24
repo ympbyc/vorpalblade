@@ -150,7 +150,7 @@ window.Three.display = (function () {
 
     return {
         draw: function (x, z, ch, color) {
-            x=x-10;
+            x=x-20;
             z=z-10;
             if (map[x+","+z]) config.parent.remove(map[x+","+z]);
 

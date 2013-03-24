@@ -9,22 +9,22 @@
 ;;;; ympbyc the Programmer    Chaotic human hacker
 
 ;;===================( Config )===================;;
-(define *map-width* 30)
-(define *map-height* 20)
+(define *map-width* 50)
+(define *map-height* 23)
 (define *seed* 1236)
 (define *path-cache-duration* 10)
 (define *visibility-distance* 3)
 (define *GAME-display* (js-eval "Three.display"))
 (define *GAME-engine* (js-new "ROT.Engine"))
 (define *keymap* (construct-eq-hashtable
-                  89 7    ;y
+                  89 1    ;y
                   75 0    ;k
-                  85 1    ;u
+                  85 7    ;u
                   76 6      ;2    ;l
 
-                  78 3    ;n
+                  78 5    ;n
                   74 4    ;j
-                  66 5    ;b
+                  66 3    ;b
                   72 2))  ;h     ;6
 (define *objects* (construct-eq-hashtable
                    'player #f

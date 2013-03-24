@@ -46,7 +46,7 @@
                        (player-movement e pl gameMap freeCells)
                        (draw-fov gameMap freeCells (creature-x pl) (creature-y pl))
                        (js-call creature-draw pl)
-                       (draw-status pl)
+                       #;(draw-status pl)
                        (.. unlock *GAME-engine*))))
 
 (define-method rot-act ([en <enemy>] gameMap freeCells)
