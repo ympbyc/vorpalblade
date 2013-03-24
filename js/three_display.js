@@ -11,7 +11,7 @@ window.Three.display = (function () {
         var camera = new THREE.PerspectiveCamera(
             20,
             winW / winH,
-            1, 1500);
+            1, 1300);
 
         camera.position.set( 0, 400, 700 );
 
@@ -44,7 +44,7 @@ window.Three.display = (function () {
         ]);
 
         var parent = new THREE.Object3D();
-        parent.position.y = 100;
+        parent.position.y = 150;
 
         scene.add( parent );
 
@@ -53,10 +53,10 @@ window.Three.display = (function () {
         var plane = new THREE.Mesh( new THREE.PlaneGeometry( 10000, 10000 ),
                                     new THREE.MeshBasicMaterial({
                                         color: 0xffffff,
-                                        opacity: 0.5,
+                                        opacity: 0.8,
                                         transparent: true
                                     }));
-        plane.position.y = 100;
+        plane.position.y = 150;
         plane.rotation.x = - Math.PI / 2;
         scene.add( plane );
 
@@ -146,20 +146,23 @@ window.Three.display = (function () {
         config = init();
     //});
 
+    var map = {};
 
     return {
         draw: function (x, z, ch, color) {
             x=x-10;
             z=z-10;
-            config.parent.add(createText({
+            if (map[x+","+z]) config.parent.remove(map[x+","+z]);
+
+            var text = createText({
                 text: ch,
                 height: 3, //厚さ
-                size: 35,   //大きさ
+                size: 10,   //大きさ
                 color: colorToHex(color),
 
-                x: x*60,     //横 0が真ん中
+                x: x*20,     //横 0が真ん中
                 y: 10,      //上下 0が真ん中
-                z: z*60,     //前後 0が真ん中
+                z: z*30,     //前後 0が真ん中
 
                 curveSegments: 4,
 
@@ -171,7 +174,10 @@ window.Three.display = (function () {
                 font: "optimer",
                 weight: "bold",
                 style: "normal"
-            }));
+            });
+            map[x+","+z] = text;
+
+            config.parent.add(text);
             render(config.renderer,
                    config.parent,
                    config.scene,

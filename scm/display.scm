@@ -9,7 +9,8 @@
 (define memoized-light-passes #f)
 
 (define *drawn-fov* (make-set))
-(define *fov-redraw-everytime* (set "~" "+"))
+(define *fov-redraw-everytime* (set ;"~" "+"
+                                ))
 
 (define *currently-lit* (make-set))
 
@@ -18,7 +19,7 @@
                   (let* ([x (key-x key)]
                          [y (key-y key)]
                          [ch (game-map-ref gameMap x y "#")])
-                    (if (or (eqv? ch "~")
+                    (if (or #;(eqv? ch "~")
                             (not (set-contains? cur-lit key)))
                             (draw-colored-char
                              x y
@@ -43,9 +44,10 @@
         [cell (game-map-ref gameMap pl-x pl-y #f)]
         [fov (js-new "ROT.FOV.PreciseShadowcasting" memoized-light-passes)]
         [next-lit (make-set)])
-    (cond [(and (eqv? cell ".")
-                (not (set-contains? *currently-lit* key)))
-           (draw-floodfill gameMap pl-x pl-y)]
+    (cond
+     #;[(and (eqv? cell ".")
+           (not (set-contains? *currently-lit* key)))
+      (draw-floodfill gameMap pl-x pl-y)]
      #;[(eqv? cell ".") #f]
      [(or (set-contains? *fov-redraw-everytime* cell)
           (not (set-contains? *drawn-fov* key)))

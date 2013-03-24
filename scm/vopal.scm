@@ -13,7 +13,7 @@
 (define *map-height* 20)
 (define *seed* 1236)
 (define *path-cache-duration* 10)
-(define *visibility-distance* 6)
+(define *visibility-distance* 3)
 (define *GAME-display* (js-eval "Three.display"))
 (define *GAME-engine* (js-new "ROT.Engine"))
 (define *keymap* (construct-eq-hashtable
