@@ -26,7 +26,7 @@
         res.writeHead(200, {'Content-Type': 'text/html'});
         return res.end(html);
 
-    }).listen(8080);
+    }).listen(8000);
 
     function rf (fname, res) {
         res.setHeader('Content-Type', content_type(fname));

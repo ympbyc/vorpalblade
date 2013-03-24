@@ -140,11 +140,22 @@ window.Three.display = (function () {
 
     window.colorToHex = colorToHex;
 
-
     var config;
     //$(function () {
         config = init();
     //});
+
+
+    var _x = 100;
+    var _y = true;
+    setInterval(function () {
+       if (window.player) {
+           config.camera.position.z = 700 + player.y * 10;
+           //config.camera.position.x = player.x;
+       }
+
+    }, 100);
+
 
     var map = {};
 
@@ -178,6 +189,7 @@ window.Three.display = (function () {
             map[x+","+z] = text;
 
             config.parent.add(text);
+
             render(config.renderer,
                    config.parent,
                    config.scene,

@@ -49,7 +49,7 @@
            (not (set-contains? *currently-lit* key)))
       (draw-floodfill gameMap pl-x pl-y)]
      #;[(eqv? cell ".") #f]
-     [(or (set-contains? *fov-redraw-everytime* cell)
+     [(or #t (set-contains? *fov-redraw-everytime* cell)
           (not (set-contains? *drawn-fov* key)))
       (set-add! *drawn-fov* key)
       (.. compute fov pl-x pl-y *visibility-distance*
