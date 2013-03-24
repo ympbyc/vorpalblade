@@ -14,7 +14,7 @@
 (define *seed* 1236)
 (define *path-cache-duration* 10)
 (define *visibility-distance* 3)
-(define *GAME-display* (js-eval "Three.display"))
+(define *GAME-display* (js-eval "Three.display")) ;Three.js
 (define *GAME-engine* (js-new "ROT.Engine"))
 (define *keymap* (construct-eq-hashtable
                   89 1    ;y
