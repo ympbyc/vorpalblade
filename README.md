@@ -1,7 +1,7 @@
 Vorp@lblade
 ===========
 
-Browser * Lisp -> Roguelike feed reader
+Roguelike game written in BiwaScheme
 
 Status
 ------
