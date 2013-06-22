@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Vorpalblade</title>
+    <script type="text/javascript"
+            src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+    <script src="./lib/rot.js"></script>
+    <script>module={};module.exports={};</script>
+    <!--script src="https://raw.github.com/ympbyc/js-clos/master/clos.js"></script-->
+    <script src="./lib/clos.js"></script>
+    <script>CLOS = module.exports;</script>
+
+    <script src="./lib/rangersheck-mapper/array.js"></script>
+    <script src="./lib/rangersheck-mapper/lowpro.jquery.js"></script>
+    <script src="./lib/rangersheck-mapper/room_template.js"></script>
+    <script src="./lib/rangersheck-mapper/mapper.js"></script>
+
+    <link rel="stylesheet" href="./css/vopal.css" />
+  </head>
+  <body>
+    <div id="vorpal-status">
+      <div id="vorpal-at">@: You</div>
+      <div id="vorpal-health"></div>
+      <div class="vorpal-health-text">Health</div>
+      <div id="vorpal-depth">-- Depth: 1 --</div>
+    </div>
+    <div id="rot-container">
+    </div>
+    <div id="bs-console"></div>
+    <div id="biwascheme-debugger"></div>
+    <div id="map_display"></div>
+    <script src="./lib/biwascheme-min.js">
+{{helper}}
+{{mapGen}}
+{{creature}}
+{{display}}
+{{status}}
+{{vopal}}
+    </script>
+  </body>
+</html>
