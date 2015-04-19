@@ -3,6 +3,16 @@ Vorp@lblade
 
 Roguelike game written in BiwaScheme
 
+Run
+---
+
+```
+cd vorpalblade
+node server.js
+```
+
+then point your browser to [`http://localhost:8080`](http://localhost:8080)
+
 Status
 ------
 
